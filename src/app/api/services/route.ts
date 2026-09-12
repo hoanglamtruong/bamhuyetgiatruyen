@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== "ADMIN" && user.role !== "OWNER")) {
+    if (!user || (user.role !== "ADMIN" && user.role !== "OWNER" && user.role !== "MANAGER")) {
       return NextResponse.json({ error: "Không có quyền chỉnh sửa dịch vụ" }, { status: 403 });
     }
 

@@ -1,16 +1,33 @@
 import Link from "next/link";
 import { pool } from "@/lib/db";
-import { Calendar, ShieldCheck, HeartPulse, Clock, ArrowRight, Star, Sparkles } from "lucide-react";
+import { Calendar, ShieldCheck, HeartPulse, Clock, ArrowRight, Star, Sparkles, Tag, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-async function getServices() {
-  const res = await pool.query("SELECT * FROM services WHERE is_active = true ORDER BY price ASC LIMIT 4;");
-  return res.rows;
+async function getHomeData() {
+  const [srvRes, banRes, thmRes] = await Promise.all([
+    pool.query("SELECT * FROM services WHERE is_active = true ORDER BY price ASC LIMIT 4;"),
+    pool.query("SELECT * FROM banners WHERE is_active = true ORDER BY display_order ASC, created_at DESC;"),
+    pool.query("SELECT key, value FROM system_configs WHERE key LIKE 'theme_%';"),
+  ]);
+
+  const theme: Record<string, string> = {
+    theme_title: "Bấm Huyệt Gia Truyền",
+    theme_slogan: "Khơi Thông Kinh Lạc · Đẩy Lùi Đau Nhức Cổ Vai Gáy",
+  };
+  for (const row of thmRes.rows) {
+    theme[row.key] = row.value;
+  }
+
+  return {
+    services: srvRes.rows,
+    banners: banRes.rows,
+    theme,
+  };
 }
 
 export default async function HomePage() {
-  const services = await getServices();
+  const { services, banners, theme } = await getHomeData();
 
   return (
     <div>
@@ -66,6 +83,45 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* PROMO BANNERS SHOWCASE */}
+      {banners.length > 0 && (
+        <section className="bg-amber-500/10 border-b border-amber-200/60 py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {banners.map((ban: any) => (
+                <div
+                  key={ban.id}
+                  className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2.5 bg-[#E8622A]/10 text-[#E8622A] rounded-xl flex-shrink-0 mt-0.5">
+                      <Tag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="inline-block bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                        Ưu Đãi Đặc Biệt
+                      </div>
+                      <h3 className="text-base font-black text-gray-900 leading-snug">{ban.title}</h3>
+                      {ban.subtitle && (
+                        <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{ban.subtitle}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Link
+                    href={ban.link_url || "/booking"}
+                    className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 bg-[#E8622A] hover:bg-[#D04F18] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex-shrink-0"
+                  >
+                    <span>Nhận Ngay</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CORE HIGHLIGHTS */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -22,10 +22,29 @@ function BookingForm() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("09:00");
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Fetch booked slots for selected date to prevent conflicts
+  const checkBookedSlots = async (dateStr: string) => {
+    if (!dateStr) return;
+    try {
+      const res = await fetch(`/api/bookings?date=${dateStr}`);
+      const data = await res.json();
+      const slots: string[] = data.bookedSlots || [];
+      setBookedSlots(slots);
+      // Auto select first available slot
+      const firstAvailable = timeSlots.find((s) => !slots.includes(s));
+      if (firstAvailable && slots.includes(bookingTime)) {
+        setBookingTime(firstAvailable);
+      }
+    } catch {
+      setBookedSlots([]);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/services")
@@ -43,7 +62,9 @@ function BookingForm() {
     // Default booking date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    setBookingDate(tomorrow.toISOString().split("T")[0]);
+    const tomDate = tomorrow.toISOString().split("T")[0];
+    setBookingDate(tomDate);
+    checkBookedSlots(tomDate);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,16 +170,26 @@ function BookingForm() {
               <input
                 type="date"
                 value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
+                onChange={(e) => {
+                  setBookingDate(e.target.value);
+                  checkBookedSlots(e.target.value);
+                }}
                 className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#1B6B7B]" />
-                <span>3. Chọn Khung Giờ</span>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#1B6B7B]" />
+                  <span>3. Chọn Khung Giờ</span>
+                </span>
+                {bookedSlots.length > 0 && (
+                  <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded">
+                    Đã có {bookedSlots.length} giờ kín lịch
+                  </span>
+                )}
               </label>
               <select
                 value={bookingTime}
@@ -166,11 +197,14 @@ function BookingForm() {
                 className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 required
               >
-                {timeSlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
+                {timeSlots.map((slot) => {
+                  const isBooked = bookedSlots.includes(slot);
+                  return (
+                    <option key={slot} value={slot} disabled={isBooked} className={isBooked ? "text-red-500 bg-red-50" : ""}>
+                      {slot} {isBooked ? "— [ĐÃ CÓ KHÁCH ĐẶT · TRÙNG LỊCH]" : "— (Còn trống)"}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

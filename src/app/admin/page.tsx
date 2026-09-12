@@ -17,12 +17,15 @@ import {
   RefreshCw,
   PowerOff,
   Unlock,
+  Palette,
+  Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"config" | "services" | "support">("config");
+  const [activeTab, setActiveTab] = useState<"theme" | "banners" | "config" | "services" | "support">("theme");
   const [escalation, setEscalation] = useState<any>(null);
   const [configs, setConfigs] = useState<Record<string, string>>({});
   const [services, setServices] = useState<any[]>([]);
@@ -30,11 +33,24 @@ export default function AdminDashboard() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [theme, setTheme] = useState<Record<string, string>>({
+    theme_title: "Bấm Huyệt Gia Truyền",
+    theme_slogan: "Khơi Thông Kinh Lạc · Đẩy Lùi Đau Nhức Cổ Vai Gáy",
+    theme_primary_color: "#1B6B7B",
+    theme_accent_color: "#E8622A",
+    theme_hotline: "0912.345.678",
+    theme_address: "Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội",
+  });
   const [msg, setMsg] = useState<string | null>(null);
 
   // Form edit service state
   const [editingService, setEditingService] = useState<any | null>(null);
   const [serviceModal, setServiceModal] = useState(false);
+
+  // Form edit banner state
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+  const [bannerModal, setBannerModal] = useState(false);
 
   // Simulation test date
   const [simDate, setSimDate] = useState("");
@@ -43,7 +59,7 @@ export default function AdminDashboard() {
     try {
       const authRes = await fetch("/api/auth/me");
       const authData = await authRes.json();
-      if (!authData.user || authData.user.role !== "ADMIN") {
+      if (!authData.user || (authData.user.role !== "ADMIN" && authData.user.role !== "MANAGER")) {
         router.push("/login");
         return;
       }
@@ -54,12 +70,14 @@ export default function AdminDashboard() {
       setEscalation(escData);
       if (escData.configs) setConfigs(escData.configs);
 
-      const [srvRes, bkgRes, cusRes, ordRes, ctcRes] = await Promise.all([
+      const [srvRes, bkgRes, cusRes, ordRes, ctcRes, banRes, thmRes] = await Promise.all([
         fetch("/api/services"),
         fetch("/api/bookings"),
         fetch("/api/customers"),
         fetch("/api/orders"),
         fetch("/api/contacts"),
+        fetch("/api/banners?all=true"),
+        fetch("/api/theme"),
       ]);
 
       setServices((await srvRes.json()).services || []);
@@ -67,6 +85,9 @@ export default function AdminDashboard() {
       setCustomers((await cusRes.json()).customers || []);
       setOrders((await ordRes.json()).orders || []);
       setContacts((await ctcRes.json()).contacts || []);
+      setBanners((await banRes.json()).banners || []);
+      const thmData = await thmRes.json();
+      if (thmData.theme) setTheme(thmData.theme);
     } catch (err) {
       console.error(err);
     } finally {
@@ -158,6 +179,60 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSaveTheme = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setMsg("Đã cập nhật cấu hình giao diện Theme thành công!");
+        loadData(simDate);
+        setTimeout(() => setMsg(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Lỗi lưu theme: " + err.message);
+    }
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingBanner),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setMsg("Đã lưu Banner thành công!");
+        setBannerModal(false);
+        loadData(simDate);
+        setTimeout(() => setMsg(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Lỗi lưu banner: " + err.message);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm("Xác nhận xóa Banner này?")) return;
+    try {
+      const res = await fetch(`/api/banners?id=${id}`, { method: "DELETE" });
+      const d = await res.json();
+      if (d.success) {
+        setMsg("Đã xoá Banner thành công!");
+        loadData(simDate);
+        setTimeout(() => setMsg(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Lỗi xoá banner: " + err.message);
+    }
+  };
+
   if (loading) {
     return <div className="p-12 text-center text-sm text-gray-500">Đang tải Admin Panel...</div>;
   }
@@ -206,22 +281,46 @@ export default function AdminDashboard() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 space-x-4">
+      <div className="flex border-b border-gray-200 space-x-2 sm:space-x-4 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("theme")}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "theme"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Cấu Hình Theme Giao Diện</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("banners")}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "banners"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>Quản Lý Banner ({banners.length})</span>
+        </button>
+
         <button
           onClick={() => setActiveTab("config")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === "config"
               ? "border-blue-600 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Cấu Hình Tham Số Leo Thang & KPI</span>
+          <span>Tham Số Leo Thang & KPI</span>
         </button>
 
         <button
           onClick={() => setActiveTab("services")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === "services"
               ? "border-blue-600 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -233,7 +332,7 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setActiveTab("support")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === "support"
               ? "border-blue-600 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -243,6 +342,189 @@ export default function AdminDashboard() {
           <span>Dữ Liệu Hỗ Trợ Kỹ Thuật (CRM/Orders)</span>
         </button>
       </div>
+
+      {/* TAB THEME: CẤU HÌNH GIAO DIỆN THEME */}
+      {activeTab === "theme" && (
+        <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex items-center space-x-3 border-b border-gray-100 pb-4">
+            <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+              <Palette className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Tùy Biến Giao Diện Theme & Thương Hiệu</h2>
+              <p className="text-xs text-gray-500">
+                Admin và Manager có thể tuỳ chỉnh màu sắc nhận diện, slogan, hotline và thông tin cơ sở.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveTheme} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Tên Thương Hiệu / Tiêu Đề Web</label>
+                <input
+                  type="text"
+                  value={theme["theme_title"] || ""}
+                  onChange={(e) => setTheme({ ...theme, theme_title: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Khẩu Hiệu (Slogan)</label>
+                <input
+                  type="text"
+                  value={theme["theme_slogan"] || ""}
+                  onChange={(e) => setTheme({ ...theme, theme_slogan: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Màu Chủ Đạo (Primary Color)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={theme["theme_primary_color"] || "#1B6B7B"}
+                    onChange={(e) => setTheme({ ...theme, theme_primary_color: e.target.value })}
+                    className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0"
+                  />
+                  <input
+                    type="text"
+                    value={theme["theme_primary_color"] || "#1B6B7B"}
+                    onChange={(e) => setTheme({ ...theme, theme_primary_color: e.target.value })}
+                    className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Màu Điểm Nhấn (Accent Color)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={theme["theme_accent_color"] || "#E8622A"}
+                    onChange={(e) => setTheme({ ...theme, theme_accent_color: e.target.value })}
+                    className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0"
+                  />
+                  <input
+                    type="text"
+                    value={theme["theme_accent_color"] || "#E8622A"}
+                    onChange={(e) => setTheme({ ...theme, theme_accent_color: e.target.value })}
+                    className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Hotline Cơ Sở</label>
+                <input
+                  type="text"
+                  value={theme["theme_hotline"] || ""}
+                  onChange={(e) => setTheme({ ...theme, theme_hotline: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Địa Chỉ Phòng Khám</label>
+                <input
+                  type="text"
+                  value={theme["theme_address"] || ""}
+                  onChange={(e) => setTheme({ ...theme, theme_address: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow transition"
+              >
+                Lưu Cấu Hình Theme
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* TAB BANNERS: QUẢN LÝ BANNER */}
+      {activeTab === "banners" && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-200/80 shadow-sm">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Danh Sách Banner & Khuyến Mãi</h2>
+              <p className="text-xs text-gray-500">Admin và Manager có thể thêm, sửa, kích hoạt hoặc ẩn các banner quảng bá.</p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingBanner({
+                  title: "",
+                  subtitle: "",
+                  image_url: "",
+                  link_url: "/booking",
+                  display_order: banners.length + 1,
+                  is_active: true,
+                });
+                setBannerModal(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Banner Mới</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {banners.map((ban) => (
+              <div key={ban.id} className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                      Thứ tự: {ban.display_order}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ban.is_active ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                      {ban.is_active ? "Đang hiển thị" : "Đang ẩn"}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-base">{ban.title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{ban.subtitle}</p>
+                  {ban.link_url && (
+                    <div className="mt-2 text-[11px] text-blue-600 font-mono">
+                      Link: {ban.link_url}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingBanner(ban);
+                      setBannerModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Sửa</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBanner(ban.id)}
+                    className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xoá</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: CẤU HÌNH THAM SỐ LEO THANG */}
       {activeTab === "config" && (
@@ -752,6 +1034,90 @@ export default function AdminDashboard() {
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold text-white shadow"
                 >
                   Lưu Thay Đổi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chỉnh sửa / Thêm Banner */}
+      {bannerModal && editingBanner && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              {editingBanner.id ? "Chỉnh Sửa Banner" : "Thêm Banner Mới"}
+            </h3>
+            <form onSubmit={handleSaveBanner} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Tiêu Đề Banner / Khuyến Mãi</label>
+                <input
+                  type="text"
+                  value={editingBanner.title}
+                  onChange={(e) => setEditingBanner({ ...editingBanner, title: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Mô Tả Phụ (Subtitle)</label>
+                <textarea
+                  rows={2}
+                  value={editingBanner.subtitle || ""}
+                  onChange={(e) => setEditingBanner({ ...editingBanner, subtitle: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Đường Dẫn Liên Kết (Link URL)</label>
+                  <input
+                    type="text"
+                    value={editingBanner.link_url || ""}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, link_url: e.target.value })}
+                    placeholder="/booking"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Thứ Tự Hiển Thị</label>
+                  <input
+                    type="number"
+                    value={editingBanner.display_order || 1}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, display_order: parseInt(e.target.value, 10) })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="ban-active"
+                  checked={editingBanner.is_active}
+                  onChange={(e) => setEditingBanner({ ...editingBanner, is_active: e.target.checked })}
+                  className="rounded text-blue-600"
+                />
+                <label htmlFor="ban-active" className="text-xs font-semibold text-gray-700">
+                  Kích hoạt hiển thị trên trang chủ
+                </label>
+              </div>
+
+              <div className="pt-4 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setBannerModal(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold text-white shadow"
+                >
+                  Lưu Banner
                 </button>
               </div>
             </form>

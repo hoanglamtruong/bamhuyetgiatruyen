@@ -87,7 +87,7 @@ export async function evaluateEscalation(overrideDate?: Date): Promise<Escalatio
   // Tính doanh thu tháng hiện tại
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const revRes = await pool.query(
-    "SELECT COALESCE(SUM(amount), 0) as total, COALESCE(SUM(manager_amount), 0) as manager_share FROM orders WHERE month_period = $1 AND status = 'completed';",
+    "SELECT COALESCE(SUM(amount), 0) as total, COALESCE(SUM(manager_amount), 0) as manager_share FROM orders WHERE month_period = $1 AND status IN ('completed', 'accepted');",
     [currentMonthStr]
   );
   const currentTotal = parseFloat(revRes.rows[0].total);
@@ -146,7 +146,7 @@ export async function evaluateEscalation(overrideDate?: Date): Promise<Escalatio
     }
 
     const pastRevRes = await pool.query(
-      "SELECT month_period, COALESCE(SUM(amount), 0) as total FROM orders WHERE month_period = ANY($1) AND status = 'completed' GROUP BY month_period;",
+      "SELECT month_period, COALESCE(SUM(amount), 0) as total FROM orders WHERE month_period = ANY($1) AND status IN ('completed', 'accepted') GROUP BY month_period;",
       [pastMonths]
     );
 

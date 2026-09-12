@@ -136,6 +136,32 @@ export async function initDatabase() {
       );
     `);
 
+    // 9. Bảng Banners (Admin & Manager quản lý)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS banners (
+        id VARCHAR(50) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        subtitle TEXT,
+        image_url TEXT,
+        link_url VARCHAR(255),
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        display_order INT NOT NULL DEFAULT 1,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Migration bổ sung cột nếu bảng đã tồn tại
+    await client.query(`
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(18, 2) DEFAULT 0;
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_reason TEXT;
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS final_amount NUMERIC(18, 2);
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS confirmation_message TEXT;
+
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS booking_id VARCHAR(50);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(18, 2) DEFAULT 0;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS original_amount NUMERIC(18, 2);
+    `);
+
     // Kiểm tra & Seed users
     const { rows: userCount } = await client.query(`SELECT COUNT(*) FROM users;`);
     if (parseInt(userCount[0].count, 10) === 0) {
@@ -212,7 +238,23 @@ export async function initDatabase() {
           ('suspension_reason', '', 'Lý do hệ thống ngưng hoạt động'),
           ('suspension_branch', '', 'Nhánh gây ra ngưng hoạt động (PAYMENT hoặc KPI)'),
           ('telegram_bot_token', 'mock_token_zeebee_bot', 'Token Telegram Bot gửi cảnh báo Bước 1'),
-          ('telegram_owner_chat_id', 'mock_chat_id_owner', 'Telegram Chat ID của Owner để nhận cảnh báo');
+          ('telegram_owner_chat_id', 'mock_chat_id_owner', 'Telegram Chat ID của Owner để nhận cảnh báo'),
+          ('theme_title', 'Bấm Huyệt Gia Truyền', 'Tên thương hiệu hiển thị'),
+          ('theme_slogan', 'Khơi Thông Kinh Lạc · Đẩy Lùi Đau Nhức Cổ Vai Gáy', 'Khẩu hiệu thương hiệu'),
+          ('theme_primary_color', '#1B6B7B', 'Màu chủ đạo (Teal)'),
+          ('theme_accent_color', '#E8622A', 'Màu điểm nhấn (Orange)'),
+          ('theme_hotline', '0912.345.678', 'Hotline liên hệ'),
+          ('theme_address', 'Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội', 'Địa chỉ cơ sở');
+      `);
+    }
+
+    // Seed Banners nếu trống
+    const { rows: bannerCount } = await client.query(`SELECT COUNT(*) FROM banners;`);
+    if (parseInt(bannerCount[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO banners (id, title, subtitle, image_url, link_url, is_active, display_order) VALUES
+          ('ban-1', 'Ưu Đãi Trị Liệu Cổ Vai Gáy Giảm 20%', 'Dành cho khách hàng đặt lịch hẹn trực tuyến trong tuần này', '', '/booking?service=s1', true, 1),
+          ('ban-2', 'Gói Dưỡng Sinh Toàn Thân & Ngâm Chân Thảo Dược', 'Tặng kèm bấm huyệt diện chẩn an thần giải tỏa căng thẳng', '', '/booking?service=s3', true, 2);
       `);
     }
 

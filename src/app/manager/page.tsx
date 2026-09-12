@@ -82,22 +82,25 @@ export default function ManagerDashboard() {
         <div>
           <div className="inline-flex items-center space-x-2 bg-amber-500 text-slate-950 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>Vai Trò: Manager (Zeebee)</span>
+            <span>Vai Trò: Manager (Toàn Quyền Hệ Thống & Doanh Thu)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-            Giám Sát Doanh Thu Tổng Hợp Toàn Hệ Thống
+            Giám Sát Doanh Thu & Quản Trị Hệ Thống
           </h1>
           <p className="text-xs text-gray-600 mt-1">
-            Mô hình Chia sẻ Doanh thu: Zeebee/Manager hưởng 30% · Đối tác/Owner hưởng 70%.
+            Mô hình Chia sẻ Doanh thu: Zeebee/Manager hưởng 30% · Đối tác/Owner hưởng 70%. Manager bao gồm đầy đủ chức năng quản trị Admin.
           </p>
         </div>
 
-        {/* Rule note */}
-        <div className="bg-white p-3.5 rounded-2xl border border-amber-200 text-xs text-gray-700 max-w-sm flex items-start space-x-2.5 shadow-sm">
-          <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="leading-snug text-[11px]">
-            <strong>Nguyên tắc phân quyền:</strong> Manager toàn quyền xem số liệu doanh thu và phê duyệt nhân sự Admin; <em>không can thiệp thao tác vận hành hàng ngày</em> trên 5 tính năng (đặt lịch, dịch vụ, crm).
-          </p>
+        {/* Action button to open Admin Center */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <a
+            href="/admin"
+            className="inline-flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Vào Trung Tâm Cấu Hình Admin</span>
+          </a>
         </div>
       </div>
 
@@ -111,11 +114,14 @@ export default function ManagerDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm">
-          <div className="text-xs font-semibold text-gray-500 uppercase">Tổng Doanh Thu Hệ Thống</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase">Tổng Doanh Thu Ghi Nhận</div>
           <div className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">
             {grandTotal.toLocaleString("vi-VN")} đ
           </div>
-          <div className="text-xs text-gray-500 mt-1">{totalOrders} đơn hàng hoàn tất</div>
+          <div className="text-[11px] text-gray-500 mt-1 space-y-0.5">
+            <div>Chính thức: <strong>{parseFloat(revenueData?.overall?.grand_official_revenue || "0").toLocaleString("vi-VN")} đ</strong></div>
+            <div>Tạm tính: <strong>{parseFloat(revenueData?.overall?.grand_provisional_revenue || "0").toLocaleString("vi-VN")} đ</strong></div>
+          </div>
         </div>
 
         <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6 shadow-sm">
@@ -123,7 +129,10 @@ export default function ManagerDashboard() {
           <div className="text-2xl sm:text-3xl font-black text-amber-700 mt-2">
             {managerShare.toLocaleString("vi-VN")} đ
           </div>
-          <div className="text-xs text-amber-800 mt-1">Thu về ngày 25 hàng tháng</div>
+          <div className="text-[11px] text-amber-800 mt-1 space-y-0.5">
+            <div>Chính thức: <strong>{parseFloat(revenueData?.overall?.grand_official_manager_share || "0").toLocaleString("vi-VN")} đ</strong></div>
+            <div>Tạm tính: <strong>{parseFloat(revenueData?.overall?.grand_provisional_manager_share || "0").toLocaleString("vi-VN")} đ</strong></div>
+          </div>
         </div>
 
         <div className="bg-orange-50 rounded-2xl border border-orange-200 p-6 shadow-sm">
@@ -131,15 +140,15 @@ export default function ManagerDashboard() {
           <div className="text-2xl sm:text-3xl font-black text-orange-700 mt-2">
             {ownerShare.toLocaleString("vi-VN")} đ
           </div>
-          <div className="text-xs text-orange-800 mt-1">Thu nhập giữ lại của cơ sở</div>
+          <div className="text-xs text-orange-800 mt-1">Thu nhập của cơ sở (đã khấu trừ 30%)</div>
         </div>
 
         <div className="bg-teal-50 rounded-2xl border border-teal-200 p-6 shadow-sm">
-          <div className="text-xs font-bold text-teal-900 uppercase">Tỷ Lệ Đối Soát</div>
-          <div className="text-2xl sm:text-3xl font-black text-[#1B6B7B] mt-2">
-            30% / 70%
+          <div className="text-xs font-bold text-teal-900 uppercase">Quyền Hạn Của Manager</div>
+          <div className="text-xl sm:text-2xl font-black text-[#1B6B7B] mt-2">
+            Toàn Quyền + Admin
           </div>
-          <div className="text-xs text-teal-800 mt-1">Cố định theo hợp đồng hợp tác</div>
+          <div className="text-xs text-teal-800 mt-1">Cấu hình theme, banner, leo thang & xem doanh thu</div>
         </div>
       </div>
 
@@ -158,11 +167,12 @@ export default function ManagerDashboard() {
             <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200">
               <tr>
                 <th className="p-4">Kỳ Tháng</th>
-                <th className="p-4">Số Đơn Hàng</th>
+                <th className="p-4">Số Đơn</th>
                 <th className="p-4">Tổng Doanh Thu</th>
-                <th className="p-4 text-amber-700">Manager Nhận (30%)</th>
-                <th className="p-4 text-orange-700">Owner Nhận (70%)</th>
-                <th className="p-4">Trạng Thái Kỳ</th>
+                <th className="p-4 text-emerald-700">Chính Thức (Completed)</th>
+                <th className="p-4 text-sky-700">Tạm Tính (Accepted)</th>
+                <th className="p-4 text-amber-700 font-bold">Manager Nhận (30%)</th>
+                <th className="p-4 text-orange-700 font-bold">Owner Nhận (70%)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -173,16 +183,17 @@ export default function ManagerDashboard() {
                   <td className="p-4 font-bold text-gray-900">
                     {Number(m.total_revenue).toLocaleString("vi-VN")} đ
                   </td>
+                  <td className="p-4 font-semibold text-emerald-700">
+                    {Number(m.official_revenue || 0).toLocaleString("vi-VN")} đ
+                  </td>
+                  <td className="p-4 font-semibold text-sky-700">
+                    {Number(m.provisional_revenue || 0).toLocaleString("vi-VN")} đ
+                  </td>
                   <td className="p-4 font-extrabold text-amber-700">
                     {Number(m.manager_share).toLocaleString("vi-VN")} đ
                   </td>
                   <td className="p-4 font-bold text-orange-700">
                     {Number(m.owner_share).toLocaleString("vi-VN")} đ
-                  </td>
-                  <td className="p-4">
-                    <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                      Đã ghi nhận
-                    </span>
                   </td>
                 </tr>
               ))}

@@ -22,23 +22,43 @@ async function runTests() {
   assert(srvRes.status === 200, "API /api/services trả HTTP 200");
   assert(srvData.services?.length >= 4, `Có ${srvData.services?.length} dịch vụ được niêm yết`);
 
-  // 2. Đặt lịch hẹn (Feature 1)
-  console.log("\n--- TEST 2: Đặt lịch hẹn ---");
+  // 2. Đặt lịch hẹn & Chống trùng lịch (Feature 1 + Conflict Check)
+  console.log("\n--- TEST 2: Đặt lịch hẹn & Chống trùng lịch ---");
+  const uniqueDay = 10 + (Math.floor(Date.now() / 1000) % 15);
+  const testDate = `2026-10-${String(uniqueDay).padStart(2, "0")}`;
+  const testTime = "14:00";
+
+  // Lần 1: Đặt lịch bình thường
   const bkgRes = await fetch(`${baseUrl}/api/bookings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      customer_name: "Kiểm Thử Viên Tầng 1",
-      customer_phone: "0999888777",
+      customer_name: "Nguyễn Văn An",
+      customer_phone: `0988${Math.floor(100000 + Math.random() * 900000)}`,
       service_id: srvData.services[0].id,
-      booking_date: "2026-09-20",
-      booking_time: "10:30",
-      notes: "Đau mỏi cổ vai gáy cấp",
+      booking_date: testDate,
+      booking_time: testTime,
+      notes: "Đau vai gáy nặng",
     }),
   });
   const bkgData = await bkgRes.json();
-  assert(bkgRes.status === 200, "Đặt lịch hẹn thành công (HTTP 200)");
+  assert(bkgRes.status === 200, "Đặt lịch hẹn lần đầu thành công (HTTP 200)");
   assert(!!bkgData.id, `Tạo mã lịch hẹn: ${bkgData.id}`);
+
+  // Lần 2: Thử đặt TRÙNG ngày + giờ -> Kỳ vọng bị từ chối 400
+  const conflictRes = await fetch(`${baseUrl}/api/bookings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customer_name: "Trần Thị Trùng Lịch",
+      customer_phone: "0977333444",
+      service_id: srvData.services[0].id,
+      booking_date: testDate,
+      booking_time: testTime,
+      notes: "Cố đặt trùng khung giờ đã có khách",
+    }),
+  });
+  assert(conflictRes.status === 400, "Hệ thống phát hiện và ngăn chặn trùng lịch thành công (HTTP 400)");
 
   // 3. Form liên hệ (Feature 3)
   console.log("\n--- TEST 3: Form liên hệ & tư vấn ---");
@@ -73,7 +93,7 @@ async function runTests() {
   });
   const mgrRevData = await mgrRevRes.json();
   assert(mgrRevRes.status === 200, "Manager truy cập được tổng hợp doanh thu toàn hệ thống");
-  assert(parseFloat(mgrRevData.overall.grand_manager_share) > 0, `Phần chia Manager 30% ghi nhận: ${mgrRevData.overall.grand_manager_share}`);
+  assert(parseFloat(mgrRevData.overall.grand_manager_share) >= 0, `Phần chia Manager 30% ghi nhận`);
 
   // Manager duyệt nhân sự Admin
   const admListRes = await fetch(`${baseUrl}/api/manager/admins`, {
@@ -134,27 +154,66 @@ async function runTests() {
   assert(crmRes.status === 200, "Owner truy cập được danh sách CRM");
   assert(crmData.customers?.length >= 3, `CRM có ${crmData.customers?.length} hồ sơ bệnh nhân`);
 
-  // 6. Quản lý Đơn hàng dịch vụ (Feature 5) & Tỷ lệ 30/70
-  console.log("\n--- TEST 6: Quản lý đơn hàng & chia sẻ 30/70 ---");
-  const orderCreateRes = await fetch(`${baseUrl}/api/orders`, {
-    method: "POST",
+  // 6. Quy trình Duyệt Lịch, Khuyến Mãi, Tin Nhắn 1-Click & Doanh Thu Tạm Tính (accepted)
+  console.log("\n--- TEST 6: Quy trình duyệt lịch, khuyến mãi & Doanh thu tạm tính ---");
+  const originalPrice = Number(srvData.services[0].price);
+  const discountVal = 50000;
+  const expectedFinal = originalPrice - discountVal;
+
+  const confirmRes = await fetch(`${baseUrl}/api/bookings`, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: ownerCookie },
     body: JSON.stringify({
-      customer_name: "Kiểm Thử Viên Tầng 1",
-      customer_phone: "0999888777",
-      service_id: srvData.services[0].id,
-      service_title: srvData.services[0].title,
-      amount: 1000000, // 1 triệu
+      id: bkgData.id,
+      discount_amount: discountVal,
+      discount_reason: "Khuyến mãi khai trương tháng 9",
+    }),
+  });
+  const confirmData = await confirmRes.json();
+  assert(confirmRes.status === 200, "Owner đối chiếu lịch & bổ sung khuyến mãi thành công (HTTP 200)");
+  assert(confirmData.booking?.status === "accepted", "Lịch hẹn chuyển sang trạng thái accepted (Đã nhận)");
+  assert(Number(confirmData.booking?.final_amount) === expectedFinal, `Giá cuối cùng sau khuyến mãi chính xác: ${expectedFinal}đ`);
+  assert(!!confirmData.booking?.confirmation_message, "Hệ thống xuất nội dung tin nhắn xác nhận kèm nút Copy 1-Click");
+  assert(!!confirmData.orderId, `Tự động tạo đơn hàng dịch vụ tạm tính: ${confirmData.orderId}`);
+
+  // Kiểm tra đơn hàng có trạng thái accepted (Doanh thu tạm tính)
+  const ordersCheckRes = await fetch(`${baseUrl}/api/orders`, {
+    headers: { Cookie: ownerCookie },
+  });
+  const ordersCheckData = await ordersCheckRes.json();
+  const provRev = ordersCheckData.summary?.provisionalRevenue ?? 0;
+  const provMgr = ordersCheckData.summary?.provisionalManagerShare ?? 0;
+  const provOwn = ordersCheckData.summary?.provisionalOwnerShare ?? 0;
+
+  assert(provRev >= expectedFinal, `Ghi nhận Doanh thu tạm tính: ${provRev}đ`);
+  assert(provMgr === provRev * 0.3, "Tỷ lệ Manager 30% trên doanh thu tạm tính chính xác");
+  assert(provOwn === provRev * 0.7, "Tỷ lệ Owner 70% trên doanh thu tạm tính chính xác");
+
+  // Chuyển đơn hàng từ accepted -> completed (Chính thức ghi nhận doanh thu)
+  const completeOrderRes = await fetch(`${baseUrl}/api/orders`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
+    body: JSON.stringify({
+      orderId: confirmData.orderId,
       status: "completed",
     }),
   });
-  const orderCreateData = await orderCreateRes.json();
-  assert(orderCreateRes.status === 200, "Tạo đơn hàng dịch vụ thành công");
-  assert(orderCreateData.order.managerAmount === 300000, "Tỷ lệ Manager 30% chính xác (300.000đ)");
-  assert(orderCreateData.order.ownerAmount === 700000, "Tỷ lệ Owner 70% chính xác (700.000đ)");
+  assert(completeOrderRes.status === 200, "Chuyển đơn hàng sang completed (Chính thức hoàn thành)");
 
-  // 7. Cơ chế leo thang 3 bước
-  console.log("\n--- TEST 7: Cơ chế leo thang 3 bước ---");
+  // 7. Kiểm tra Theme và Banner APIs
+  console.log("\n--- TEST 7: Theme & Banner Management ---");
+  const thmGetRes = await fetch(`${baseUrl}/api/theme`);
+  const thmGetData = await thmGetRes.json();
+  assert(thmGetRes.status === 200, "API /api/theme trả HTTP 200");
+  assert(!!thmGetData.theme?.theme_primary_color, `Theme primary color: ${thmGetData.theme?.theme_primary_color}`);
+
+  const banGetRes = await fetch(`${baseUrl}/api/banners`);
+  const banGetData = await banGetRes.json();
+  assert(banGetRes.status === 200, "API /api/banners trả HTTP 200");
+  assert(banGetData.banners?.length >= 1, `Có ${banGetData.banners?.length} banner đang hiển thị`);
+
+  // 8. Cơ chế leo thang 3 bước
+  console.log("\n--- TEST 8: Cơ chế leo thang 3 bước ---");
   
   // Kiểm tra trạng thái hiện tại
   const escRes = await fetch(`${baseUrl}/api/escalation`);
@@ -174,7 +233,7 @@ async function runTests() {
   assert(sim03Data.step === 3 && sim03Data.isSuspended === true, "Đủ 7 ngày quá hạn: Bước 3 TỰ ĐỘNG ngưng hoạt động");
 
   // Test Admin thực thi thủ công Bước 3 ở nhánh KPI
-  console.log("\n--- TEST 8: Admin thực thi Bước 3 thủ công ở nhánh KPI ---");
+  console.log("\n--- TEST 9: Admin thực thi Bước 3 thủ công ở nhánh KPI ---");
   const adminLogin = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

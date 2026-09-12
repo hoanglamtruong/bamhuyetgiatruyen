@@ -78,13 +78,13 @@ export default function Navbar() {
               </Link>
             )}
 
-            {user?.role === "ADMIN" && (
+            {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
               <Link
                 href="/admin"
                 className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-1.5 rounded-md shadow transition"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Admin Kỹ Thuật</span>
+                <span>{user?.role === "MANAGER" ? "Cấu Hình Kỹ Thuật (Admin)" : "Admin Kỹ Thuật"}</span>
               </Link>
             )}
 
