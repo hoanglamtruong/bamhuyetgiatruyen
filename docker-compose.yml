@@ -1,0 +1,39 @@
+services:
+  bamhuyetgiatruyen-app:
+    build: .
+    image: bamhuyetgiatruyen-app:latest
+    container_name: bamhuyetgiatruyen-app
+    restart: unless-stopped
+    ports:
+      - "8123:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://bamhuyet:bamhuyet_secure_pass@bamhuyetgiatruyen-postgres:5432/bamhuyetgiatruyen_db
+    networks:
+      - homelab-net
+    depends_on:
+      - bamhuyetgiatruyen-postgres
+
+  bamhuyetgiatruyen-postgres:
+    image: postgres:16-alpine
+    container_name: bamhuyetgiatruyen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bamhuyet
+      POSTGRES_PASSWORD: bamhuyet_secure_pass
+      POSTGRES_DB: bamhuyetgiatruyen_db
+    ports:
+      - "5443:5432"
+    volumes:
+      - bamhuyetgiatruyen-pgdata:/var/lib/postgresql/data
+    networks:
+      - homelab-net
+
+networks:
+  homelab-net:
+    external: true
+
+volumes:
+  bamhuyetgiatruyen-pgdata:
+    name: bamhuyetgiatruyen-pgdata
