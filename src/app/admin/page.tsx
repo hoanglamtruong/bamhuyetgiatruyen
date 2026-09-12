@@ -20,15 +20,17 @@ import {
   Palette,
   Image as ImageIcon,
   Trash2,
+  Upload,
+  Eye,
+  X,
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"theme" | "banners" | "config" | "services" | "support">("theme");
+  const [activeTab, setActiveTab] = useState<"theme" | "banners" | "config" | "support">("theme");
   const [escalation, setEscalation] = useState<any>(null);
   const [configs, setConfigs] = useState<Record<string, string>>({});
-  const [services, setServices] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -41,12 +43,10 @@ export default function AdminDashboard() {
     theme_accent_color: "#E8622A",
     theme_hotline: "0912.345.678",
     theme_address: "Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội",
+    theme_logo_url: "",
+    theme_bg_image: "",
   });
   const [msg, setMsg] = useState<string | null>(null);
-
-  // Form edit service state
-  const [editingService, setEditingService] = useState<any | null>(null);
-  const [serviceModal, setServiceModal] = useState(false);
 
   // Form edit banner state
   const [editingBanner, setEditingBanner] = useState<any | null>(null);
@@ -70,8 +70,7 @@ export default function AdminDashboard() {
       setEscalation(escData);
       if (escData.configs) setConfigs(escData.configs);
 
-      const [srvRes, bkgRes, cusRes, ordRes, ctcRes, banRes, thmRes] = await Promise.all([
-        fetch("/api/services"),
+      const [bkgRes, cusRes, ordRes, ctcRes, banRes, thmRes] = await Promise.all([
         fetch("/api/bookings"),
         fetch("/api/customers"),
         fetch("/api/orders"),
@@ -80,7 +79,6 @@ export default function AdminDashboard() {
         fetch("/api/theme"),
       ]);
 
-      setServices((await srvRes.json()).services || []);
       setBookings((await bkgRes.json()).bookings || []);
       setCustomers((await cusRes.json()).customers || []);
       setOrders((await ordRes.json()).orders || []);
@@ -159,24 +157,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSaveService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/api/services", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingService),
-      });
-      const d = await res.json();
-      if (d.success) {
-        setMsg("Đã lưu dịch vụ thành công!");
-        setServiceModal(false);
-        loadData(simDate);
-        setTimeout(() => setMsg(null), 3000);
-      }
-    } catch (err: any) {
-      alert("Lỗi: " + err.message);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, key: "theme_logo_url" | "theme_bg_image") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Dung lượng ảnh không được vượt quá 2MB");
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const dataUrl = uploadEvent.target?.result as string;
+      setTheme((prev) => ({ ...prev, [key]: dataUrl }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveTheme = async (e: React.FormEvent) => {
@@ -319,18 +312,6 @@ export default function AdminDashboard() {
         </button>
 
         <button
-          onClick={() => setActiveTab("services")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "services"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Quản Lý Dịch Vụ ({services.length})</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab("support")}
           className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === "support"
@@ -438,6 +419,283 @@ export default function AdminDashboard() {
                   className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   required
                 />
+              </div>
+            </div>
+
+            {/* PHẦN 1: LOGO THƯƠNG HIỆU */}
+            <div className="pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-blue-600" />
+                    <span>Logo Thương Hiệu (Website & Thanh Điều Hướng)</span>
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Tuỳ chỉnh logo đại diện hiển thị trên Header, Hero và Footer.
+                  </p>
+                </div>
+                {theme["theme_logo_url"] && (
+                  <button
+                    type="button"
+                    onClick={() => setTheme({ ...theme, theme_logo_url: "" })}
+                    className="text-xs text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Dùng Logo chữ mặc định (BH)</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <div className="md:col-span-2 space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Đường dẫn URL ảnh Logo</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={theme["theme_logo_url"] || ""}
+                        onChange={(e) => setTheme({ ...theme, theme_logo_url: e.target.value })}
+                        placeholder="https://domain.com/logo.png hoặc dán link ảnh..."
+                        className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                      <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Tải file ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, "theme_logo_url")}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Chọn nhanh logo mẫu Đông Y:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTheme({
+                            ...theme,
+                            theme_logo_url:
+                              "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=200&q=80",
+                          })
+                        }
+                        className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 px-3 py-1.5 rounded-lg border border-teal-200 transition font-medium"
+                      >
+                        🌿 Thảo Mộc Gia Truyền
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTheme({
+                            ...theme,
+                            theme_logo_url:
+                              "https://images.unsplash.com/photo-1508672019048-805b876b67e2?auto=format&fit=crop&w=200&q=80",
+                          })
+                        }
+                        className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 transition font-medium"
+                      >
+                        🪷 Hoa Sen Dưỡng Sinh
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTheme({
+                            ...theme,
+                            theme_logo_url:
+                              "https://images.unsplash.com/photo-1512290900672-1f023f2f8bc5?auto=format&fit=crop&w=200&q=80",
+                          })
+                        }
+                        className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 transition font-medium"
+                      >
+                        🖐️ Bấm Huyệt Kinh Lạc
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Khung Preview Logo */}
+                <div className="bg-slate-50 rounded-2xl p-4 border border-gray-200 text-center">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center justify-center gap-1">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Xem Trước Logo</span>
+                  </div>
+                  <div
+                    className="p-3 rounded-xl flex items-center justify-center space-x-3 mb-2 shadow-inner"
+                    style={{ backgroundColor: theme["theme_primary_color"] || "#1B6B7B" }}
+                  >
+                    {theme["theme_logo_url"] ? (
+                      <img
+                        src={theme["theme_logo_url"]}
+                        alt="Logo Preview"
+                        className="w-10 h-10 rounded-full object-contain bg-white p-0.5 shadow border border-white/30"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#E8622A] flex items-center justify-center font-bold text-white text-base shadow">
+                        BH
+                      </div>
+                    )}
+                    <div className="text-left text-white">
+                      <div className="text-xs font-bold leading-tight">{theme["theme_title"] || "Bấm Huyệt Gia Truyền"}</div>
+                      <div className="text-[10px] text-teal-100 opacity-80">Header Navigation Bar</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-gray-400">Tự động điều chỉnh tỉ lệ khung tròn</span>
+                </div>
+              </div>
+            </div>
+
+            {/* PHẦN 2: ẢNH NỀN HERO BANNER */}
+            <div className="pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-blue-600" />
+                    <span>Ảnh Nền Hero Banner (Đầu Trang Chủ)</span>
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Ảnh nền phong cách Đông Y cổ truyền tạo ấn tượng chuyên nghiệp ngay khi khách truy cập.
+                  </p>
+                </div>
+                {theme["theme_bg_image"] && (
+                  <button
+                    type="button"
+                    onClick={() => setTheme({ ...theme, theme_bg_image: "" })}
+                    className="text-xs text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xoá ảnh (Dùng nền Teal mặc định)</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Đường dẫn URL ảnh nền</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={theme["theme_bg_image"] || ""}
+                      onChange={(e) => setTheme({ ...theme, theme_bg_image: e.target.value })}
+                      placeholder="https://images.unsplash.com/... hoặc tải ảnh lên..."
+                      className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                    <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Tải ảnh nền</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(e, "theme_bg_image")}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    Bộ sưu tập ảnh mẫu chuẩn Đông Y:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTheme({
+                          ...theme,
+                          theme_bg_image:
+                            "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1600&q=80",
+                        })
+                      }
+                      className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-200 transition font-medium"
+                    >
+                      🌿 Thảo Mộc & Dược Liệu Cổ Truyền
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTheme({
+                          ...theme,
+                          theme_bg_image:
+                            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1600&q=80",
+                        })
+                      }
+                      className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-900 px-3 py-1.5 rounded-lg border border-teal-200 transition font-medium"
+                    >
+                      🏛️ Không Gian Trị Liệu Dưỡng Sinh
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTheme({
+                          ...theme,
+                          theme_bg_image:
+                            "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1600&q=80",
+                        })
+                      }
+                      className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-900 px-3 py-1.5 rounded-lg border border-slate-300 transition font-medium"
+                    >
+                      🧘 Thiền Định & Trầm Hương
+                    </button>
+                  </div>
+                </div>
+
+                {/* Khung Xem Trước Hero Banner */}
+                <div className="mt-4 pt-2">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Mô Phỏng Trực Quan Banner Hero Trên Website</span>
+                  </div>
+                  <div
+                    className="relative rounded-2xl overflow-hidden p-6 text-center text-white border border-gray-200 shadow-sm bg-cover bg-center transition-all"
+                    style={
+                      theme["theme_bg_image"]
+                        ? {
+                            backgroundImage: `linear-gradient(rgba(27, 107, 123, 0.86), rgba(19, 78, 94, 0.94)), url(${theme["theme_bg_image"]})`,
+                            backgroundColor: theme["theme_primary_color"] || "#1B6B7B",
+                          }
+                        : {
+                            background: `linear-gradient(to bottom, ${theme["theme_primary_color"] || "#1B6B7B"}, #134E5E)`,
+                          }
+                    }
+                  >
+                    {theme["theme_logo_url"] && (
+                      <div className="flex justify-center mb-2">
+                        <img
+                          src={theme["theme_logo_url"]}
+                          alt="Logo Preview"
+                          className="w-12 h-12 rounded-xl object-contain bg-white/90 p-1 shadow"
+                        />
+                      </div>
+                    )}
+                    <span className="inline-block text-[10px] uppercase font-bold tracking-widest bg-white/20 px-2.5 py-0.5 rounded-full mb-2">
+                      {theme["theme_title"] || "Bấm Huyệt Gia Truyền"}
+                    </span>
+                    <h4 className="text-lg sm:text-xl font-extrabold max-w-md mx-auto leading-snug">
+                      Khơi Thông Kinh Lạc ·{" "}
+                      <span style={{ color: theme["theme_accent_color"] || "#E8622A" }}>
+                        {theme["theme_slogan"] || "Đẩy Lùi Đau Nhức Cổ Vai Gáy"}
+                      </span>
+                    </h4>
+                    <p className="text-xs text-teal-100 max-w-sm mx-auto mt-1.5 opacity-90 line-clamp-2">
+                      {theme["theme_address"] || "Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội"} · Hotline:{" "}
+                      {theme["theme_hotline"] || "0912.345.678"}
+                    </p>
+                    <div className="mt-4">
+                      <span
+                        className="inline-block text-xs font-bold text-white px-5 py-1.5 rounded-xl shadow"
+                        style={{ backgroundColor: theme["theme_accent_color"] || "#E8622A" }}
+                      >
+                        Đặt Lịch Trị Liệu Ngay
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -775,72 +1033,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: QUẢN LÝ DỊCH VỤ */}
-      {activeTab === "services" && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Danh Sách Dịch Vụ Trị Liệu Niêm Yết</h2>
-              <p className="text-xs text-gray-500">Admin có quyền thêm mới, cập nhật giá và chi tiết liệu trình.</p>
-            </div>
-            <button
-              onClick={() => {
-                setEditingService({
-                  title: "",
-                  slug: "",
-                  description: "",
-                  benefits: "",
-                  duration_minutes: 60,
-                  price: 350000,
-                  category: "Trị Liệu",
-                  is_active: true,
-                });
-                setServiceModal(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Thêm Dịch Vụ Mới</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {services.map((srv) => (
-              <div key={srv.id} className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                      {srv.category}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${srv.is_active ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                      {srv.is_active ? "Đang mở bán" : "Tạm dừng"}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-base">{srv.title}</h3>
-                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">{srv.description}</p>
-                  <div className="mt-3 text-xs font-semibold text-gray-500">
-                    Thời lượng: {srv.duration_minutes} phút · Giá: <strong className="text-orange-600">{Number(srv.price).toLocaleString("vi-VN")} đ</strong>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
-                  <button
-                    onClick={() => {
-                      setEditingService(srv);
-                      setServiceModal(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span>Chỉnh Sửa</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* TAB 3: DỮ LIỆU HỖ TRỢ KỸ THUẬT */}
       {activeTab === "support" && (
         <div className="space-y-8">
@@ -942,101 +1134,6 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Chỉnh sửa / Thêm dịch vụ */}
-      {serviceModal && editingService && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {editingService.id ? "Chỉnh Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới"}
-            </h3>
-            <form onSubmit={handleSaveService} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Tên Dịch Vụ</label>
-                <input
-                  type="text"
-                  value={editingService.title}
-                  onChange={(e) => setEditingService({ ...editingService, title: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Giá Tiền (VND)</label>
-                  <input
-                    type="number"
-                    value={editingService.price}
-                    onChange={(e) => setEditingService({ ...editingService, price: parseFloat(e.target.value) })}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Thời Lượng (Phút)</label>
-                  <input
-                    type="number"
-                    value={editingService.duration_minutes}
-                    onChange={(e) => setEditingService({ ...editingService, duration_minutes: parseInt(e.target.value, 10) })}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Mô Tả Liệu Trình</label>
-                <textarea
-                  rows={2}
-                  value={editingService.description || ""}
-                  onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Hiệu Quả Trị Liệu (Benefits)</label>
-                <textarea
-                  rows={2}
-                  value={editingService.benefits || ""}
-                  onChange={(e) => setEditingService({ ...editingService, benefits: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="srv-active"
-                  checked={editingService.is_active}
-                  onChange={(e) => setEditingService({ ...editingService, is_active: e.target.checked })}
-                  className="rounded text-blue-600"
-                />
-                <label htmlFor="srv-active" className="text-xs font-semibold text-gray-700">
-                  Hiển thị và mở bán trên website
-                </label>
-              </div>
-
-              <div className="pt-4 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setServiceModal(false)}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold text-white shadow"
-                >
-                  Lưu Thay Đổi
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

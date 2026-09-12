@@ -12,12 +12,20 @@ interface UserInfo {
 
 export default function Navbar() {
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [theme, setTheme] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
         if (data.user) setUser(data.user);
+      })
+      .catch(() => {});
+
+    fetch("/api/theme")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.theme) setTheme(data.theme);
       })
       .catch(() => {});
   }, []);
@@ -33,15 +41,23 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-full bg-[#E8622A] flex items-center justify-center font-bold text-white text-lg shadow">
-              BH
-            </div>
+            {theme?.theme_logo_url ? (
+              <img
+                src={theme.theme_logo_url}
+                alt={theme.theme_title || "Logo"}
+                className="w-10 h-10 rounded-full object-contain bg-white p-0.5 shadow border border-white/20"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#E8622A] flex items-center justify-center font-bold text-white text-lg shadow">
+                BH
+              </div>
+            )}
             <div>
               <span className="text-xl font-bold tracking-tight block leading-tight text-white group-hover:text-[#F2ECD8] transition">
-                Bấm Huyệt Gia Truyền
+                {theme?.theme_title || "Bấm Huyệt Gia Truyền"}
               </span>
-              <span className="text-xs text-teal-100 font-medium tracking-wide">
-                Nền tảng Trị Liệu Đông Y Cổ Truyền
+              <span className="text-xs text-teal-100 font-medium tracking-wide line-clamp-1">
+                {theme?.theme_slogan || "Nền tảng Trị Liệu Đông Y Cổ Truyền"}
               </span>
             </div>
           </Link>

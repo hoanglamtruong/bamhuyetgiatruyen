@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const res = await pool.query(`
       SELECT key, value FROM system_configs 
-      WHERE key IN ('theme_title', 'theme_slogan', 'theme_primary_color', 'theme_accent_color', 'theme_hotline', 'theme_address');
+      WHERE key IN ('theme_title', 'theme_slogan', 'theme_primary_color', 'theme_accent_color', 'theme_hotline', 'theme_address', 'theme_logo_url', 'theme_bg_image');
     `);
 
     const theme: Record<string, string> = {
@@ -16,6 +16,8 @@ export async function GET() {
       theme_accent_color: "#E8622A",
       theme_hotline: "0912.345.678",
       theme_address: "Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội",
+      theme_logo_url: "",
+      theme_bg_image: "",
     };
 
     for (const row of res.rows) {

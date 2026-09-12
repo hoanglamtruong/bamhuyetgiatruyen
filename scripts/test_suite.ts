@@ -212,6 +212,38 @@ async function runTests() {
   assert(banGetRes.status === 200, "API /api/banners trả HTTP 200");
   assert(banGetData.banners?.length >= 1, `Có ${banGetData.banners?.length} banner đang hiển thị`);
 
+  // Admin tuỳ biến Logo và Ảnh Nền Hero
+  const adminLoginForTheme = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "admin123" }),
+  });
+  const adminThemeCookie = adminLoginForTheme.headers.get("set-cookie") || "";
+
+  const updateThemeRes = await fetch(`${baseUrl}/api/theme`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: adminThemeCookie },
+    body: JSON.stringify({
+      theme: {
+        ...thmGetData.theme,
+        theme_logo_url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=200&q=80",
+        theme_bg_image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1600&q=80",
+      },
+    }),
+  });
+  assert(updateThemeRes.status === 200, "Admin lưu cấu hình Logo và Ảnh Nền Hero thành công (HTTP 200)");
+
+  const thmVerifyRes = await fetch(`${baseUrl}/api/theme`);
+  const thmVerifyData = await thmVerifyRes.json();
+  assert(
+    thmVerifyData.theme?.theme_logo_url?.includes("unsplash"),
+    "Cấu hình Logo được lưu và trả về chính xác qua API"
+  );
+  assert(
+    thmVerifyData.theme?.theme_bg_image?.includes("unsplash"),
+    "Cấu hình Ảnh Nền Hero được lưu và trả về chính xác qua API"
+  );
+
   // 8. Cơ chế leo thang 3 bước
   console.log("\n--- TEST 8: Cơ chế leo thang 3 bước ---");
   

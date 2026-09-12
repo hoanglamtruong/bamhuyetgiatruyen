@@ -244,7 +244,9 @@ export async function initDatabase() {
           ('theme_primary_color', '#1B6B7B', 'Màu chủ đạo (Teal)'),
           ('theme_accent_color', '#E8622A', 'Màu điểm nhấn (Orange)'),
           ('theme_hotline', '0912.345.678', 'Hotline liên hệ'),
-          ('theme_address', 'Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội', 'Địa chỉ cơ sở');
+          ('theme_address', 'Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội', 'Địa chỉ cơ sở'),
+          ('theme_logo_url', '', 'Đường dẫn hình ảnh Logo thương hiệu'),
+          ('theme_bg_image', '', 'Đường dẫn hình ảnh nền Hero/Website');
       `);
     }
 

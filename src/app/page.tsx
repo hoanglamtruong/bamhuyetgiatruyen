@@ -32,16 +32,40 @@ export default async function HomePage() {
   return (
     <div>
       {/* HERO SECTION */}
-      <section className="relative bg-gradient-to-b from-[#1B6B7B] to-[#134E5E] text-white py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto text-center space-y-6">
+      <section
+        className="relative text-white py-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-cover bg-center"
+        style={
+          theme.theme_bg_image
+            ? {
+                backgroundImage: `linear-gradient(rgba(27, 107, 123, 0.86), rgba(19, 78, 94, 0.94)), url(${theme.theme_bg_image})`,
+                backgroundColor: theme.theme_primary_color || "#1B6B7B",
+              }
+            : {
+                background: `linear-gradient(to bottom, ${theme.theme_primary_color || "#1B6B7B"}, #134E5E)`,
+              }
+        }
+      >
+        <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
+          {theme.theme_logo_url && (
+            <div className="flex justify-center mb-2">
+              <img
+                src={theme.theme_logo_url}
+                alt={theme.theme_title || "Logo"}
+                className="w-20 h-20 object-contain rounded-2xl bg-white/95 p-2 shadow-2xl border border-white/30 backdrop-blur-md"
+              />
+            </div>
+          )}
+
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-xs font-semibold tracking-wide uppercase text-teal-100">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Tinh Hoa Đông Y Trị Liệu Ba Đời Gia Truyền</span>
+            <span>{theme.theme_title || "Bấm Huyệt Gia Truyền"} · Tinh Hoa Đông Y Ba Đời</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
             Khơi Thông Kinh Lạc · <br className="hidden sm:inline" />
-            <span className="text-[#E8622A]">Đẩy Lùi Đau Nhức Cổ Vai Gáy</span>
+            <span style={{ color: theme.theme_accent_color || "#E8622A" }}>
+              {theme.theme_slogan || "Đẩy Lùi Đau Nhức Cổ Vai Gáy"}
+            </span>
           </h1>
 
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-teal-100 font-normal leading-relaxed">
@@ -53,6 +77,7 @@ export default async function HomePage() {
             <Link
               href="/booking"
               className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-[#E8622A] hover:bg-[#D04F18] text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 text-base"
+              style={{ backgroundColor: theme.theme_accent_color || "#E8622A" }}
             >
               <Calendar className="w-5 h-5" />
               <span>Đặt Lịch Khám & Trị Liệu Ngay</span>
