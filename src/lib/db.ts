@@ -162,9 +162,11 @@ export async function initDatabase() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS original_amount NUMERIC(18, 2);
     `);
 
-    // Kiểm tra & Seed users
+    const isDemoSeed = process.env.SEED_DEMO_DATA === "true";
+
+    // Kiểm tra & Seed users (Chỉ seed tài khoản mẫu khi là môi trường demo)
     const { rows: userCount } = await client.query(`SELECT COUNT(*) FROM users;`);
-    if (parseInt(userCount[0].count, 10) === 0) {
+    if (parseInt(userCount[0].count, 10) === 0 && isDemoSeed) {
       await client.query(`
         INSERT INTO users (id, username, password, name, role, is_approved, telegram_chat_id) VALUES
           ('u-manager', 'manager', 'manager123', 'Trưởng Ban Quản Lý (Zeebee)', 'MANAGER', true, 'telegram-manager-id'),
@@ -186,9 +188,9 @@ export async function initDatabase() {
       `);
     }
 
-    // Kiểm tra & Seed customers
+    // Kiểm tra & Seed customers (Chỉ seed dữ liệu mẫu khi là môi trường demo)
     const { rows: customerCount } = await client.query(`SELECT COUNT(*) FROM customers;`);
-    if (parseInt(customerCount[0].count, 10) === 0) {
+    if (parseInt(customerCount[0].count, 10) === 0 && isDemoSeed) {
       await client.query(`
         INSERT INTO customers (id, name, phone, email, health_notes, total_spent, treatment_count, last_visit) VALUES
           ('c1', 'Nguyễn Thị Thu Hà', '0912345678', 'ha.nguyen@gmail.com', 'Thoái hóa đốt sống cổ C4-C5, nhạy cảm với lực ấn mạnh, cần xoa bóp nhẹ làm ấm trước khi bấm huyệt.', 1400000, 4, CURRENT_TIMESTAMP - INTERVAL '3 days'),
@@ -197,9 +199,9 @@ export async function initDatabase() {
       `);
     }
 
-    // Kiểm tra & Seed bookings
+    // Kiểm tra & Seed bookings (Chỉ seed dữ liệu mẫu khi là môi trường demo)
     const { rows: bookingCount } = await client.query(`SELECT COUNT(*) FROM bookings;`);
-    if (parseInt(bookingCount[0].count, 10) === 0) {
+    if (parseInt(bookingCount[0].count, 10) === 0 && isDemoSeed) {
       await client.query(`
         INSERT INTO bookings (id, customer_name, customer_phone, service_id, booking_date, booking_time, status, notes) VALUES
           ('b1', 'Nguyễn Thị Thu Hà', '0912345678', 's1', CURRENT_DATE + INTERVAL '1 day', '09:00', 'confirmed', 'Khách yêu cầu kỹ thuật viên tay nghề cao'),
@@ -208,9 +210,9 @@ export async function initDatabase() {
       `);
     }
 
-    // Kiểm tra & Seed orders (với tỷ lệ chia sẻ 30% Manager - 70% Owner)
+    // Kiểm tra & Seed orders (Chỉ seed dữ liệu mẫu khi là môi trường demo)
     const { rows: orderCount } = await client.query(`SELECT COUNT(*) FROM orders;`);
-    if (parseInt(orderCount[0].count, 10) === 0) {
+    if (parseInt(orderCount[0].count, 10) === 0 && isDemoSeed) {
       await client.query(`
         INSERT INTO orders (id, order_code, customer_id, customer_name, customer_phone, service_id, service_title, amount, commission_rate, manager_amount, owner_amount, status, month_period, completed_at) VALUES
           ('ord-001', 'ORD-202609-001', 'c1', 'Nguyễn Thị Thu Hà', '0912345678', 's1', 'Bấm Huyệt Trị Liệu Cổ Vai Gáy', 350000, 30, 105000, 245000, 'completed', '2026-09', CURRENT_TIMESTAMP - INTERVAL '3 days'),

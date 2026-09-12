@@ -9,7 +9,26 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - APP_ENV=production
+      - SEED_DEMO_DATA=false
       - DATABASE_URL=postgresql://bamhuyet:bamhuyet_secure_pass@bamhuyetgiatruyen-postgres:5432/bamhuyetgiatruyen_db
+    networks:
+      - homelab-net
+    depends_on:
+      - bamhuyetgiatruyen-postgres
+
+  bhgt-demo-app:
+    image: bamhuyetgiatruyen-app:latest
+    container_name: bhgt-demo-app
+    restart: unless-stopped
+    ports:
+      - "8124:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - APP_ENV=demo
+      - SEED_DEMO_DATA=true
+      - DATABASE_URL=postgresql://bamhuyet:bamhuyet_secure_pass@bamhuyetgiatruyen-postgres:5432/bhgt_demo_db
     networks:
       - homelab-net
     depends_on:

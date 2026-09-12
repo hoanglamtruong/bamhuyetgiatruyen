@@ -1,5 +1,5 @@
 async function runTests() {
-  const baseUrl = "http://localhost:8123";
+  const baseUrl = process.env.TEST_URL || "http://localhost:8124";
   let passed = 0;
   let failed = 0;
 
