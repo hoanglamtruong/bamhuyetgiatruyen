@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, User, ShieldCheck, AlertCircle, ArrowRight, UserPlus, CheckCircle, Phone, Mail, HeartPulse } from "lucide-react";
+import { Lock, User, ShieldCheck, AlertCircle, ArrowRight, UserPlus, CheckCircle, Phone, Mail, HeartPulse, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +11,8 @@ export default function LoginPage() {
   // Login form state
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,12 +20,23 @@ export default function LoginPage() {
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regEmail, setRegEmail] = useState("");
   const [regHealthNotes, setRegHealthNotes] = useState("");
 
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
+    // Phục hồi lưu đăng nhập
+    try {
+      const savedRemember = localStorage.getItem("bhgt_remember");
+      const savedUser = localStorage.getItem("bhgt_username");
+      if (savedRemember === "true" && savedUser) {
+        setRememberMe(true);
+        setUsername(savedUser);
+      }
+    } catch {}
+
     fetch("/api/auth/status")
       .then((res) => res.json())
       .then((data) => {
@@ -40,12 +53,23 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: u, password: p }),
+        body: JSON.stringify({ username: u, password: p, remember: rememberMe }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Đăng nhập thất bại");
       }
+
+      // Xử lý lưu đăng nhập trên thiết bị
+      try {
+        if (rememberMe) {
+          localStorage.setItem("bhgt_remember", "true");
+          localStorage.setItem("bhgt_username", u);
+        } else {
+          localStorage.removeItem("bhgt_remember");
+          localStorage.removeItem("bhgt_username");
+        }
+      } catch {}
 
       // Redirect based on role
       if (data.user.role === "MANAGER") {
@@ -150,8 +174,8 @@ export default function LoginPage() {
             </h1>
             <p className="text-xs text-gray-500 mt-1">
               {tab === "login"
-                ? "Cổng đăng nhập chung: Khách Hàng · Chủ Cơ Sở (Owner) · Quản Lý (Manager) · Kỹ Thuật (Admin)"
-                : "Cổng đăng ký dành riêng cho Khách Hàng để theo dõi lịch trình, đơn hàng & sức khỏe"}
+                ? "Đăng nhập để theo dõi hồ sơ sức khỏe & lịch trình dịch vụ"
+                : "Đăng ký tài khoản để theo dõi lịch trình, đơn hàng & sức khỏe"}
             </p>
           </div>
 
@@ -193,16 +217,36 @@ export default function LoginPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Mật Khẩu</label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
                     <input
-                      type="password"
+                      type={showLoginPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none p-0.5"
+                      title={showLoginPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center space-x-2 text-gray-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#1B6B7B] focus:ring-teal-500 border-gray-300 accent-[#1B6B7B]"
+                    />
+                    <span className="font-medium text-gray-700">Lưu đăng nhập</span>
+                  </label>
                 </div>
 
                 <button
@@ -265,15 +309,23 @@ export default function LoginPage() {
                     Mật Khẩu <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
                     <input
-                      type="password"
+                      type={showRegPassword ? "text" : "password"}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Tối thiểu 6 ký tự"
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none p-0.5"
+                      title={showRegPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    >
+                      {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -383,13 +435,6 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-
-            {/* Ghi chú cổng vận hành cấp riêng */}
-            <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-              <p className="text-[11px] text-gray-400">
-                🔒 Nhân sự vận hành (Owner · Admin · Manager): Tài khoản được tạo và cấp riêng bởi Quản Lý Hệ Thống.
-              </p>
-            </div>
           </div>
         </div>
       </div>

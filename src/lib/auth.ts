@@ -41,7 +41,11 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   }
 }
 
-export async function loginUser(identifier: string, pass: string): Promise<{ success: boolean; error?: string; user?: UserSession }> {
+export async function loginUser(
+  identifier: string,
+  pass: string,
+  remember: boolean = true
+): Promise<{ success: boolean; error?: string; user?: UserSession }> {
   const trimmed = identifier.trim();
   const res = await pool.query(
     "SELECT id, username, password, name, role, is_approved, phone, email, customer_id FROM users WHERE username = $1 OR phone = $1;",
@@ -71,12 +75,13 @@ export async function loginUser(identifier: string, pass: string): Promise<{ suc
 
   const token = Buffer.from(JSON.stringify({ id: u.id, username: u.username, role: u.role })).toString("base64");
   const cookieStore = await cookies();
+  const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30 ngày nếu lưu đăng nhập, 1 ngày nếu không
   cookieStore.set("bhgt_session", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge,
   });
 
   return { success: true, user };

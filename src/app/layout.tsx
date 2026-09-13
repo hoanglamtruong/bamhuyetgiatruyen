@@ -28,7 +28,6 @@ export default function RootLayout({
               </p>
             </div>
             <div className="mt-4 sm:mt-0 text-xs text-teal-200 space-y-1 sm:text-right">
-              <div>Hợp tác & Vận hành: Zeebee Revenue Sharing Platform (30/70)</div>
               <div>Hotline tư vấn: 0912.345.678 · Giờ làm việc: 08:00 - 21:00 hàng ngày</div>
             </div>
           </div>
