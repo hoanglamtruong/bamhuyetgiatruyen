@@ -390,14 +390,25 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-2">
                   <button
-                    onClick={() => quickLogin("manager", "manager123")}
+                    onClick={() => quickLogin("Zang", "a090412033")}
                     className="w-full flex items-center justify-between p-2.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 text-amber-900 rounded-xl text-xs font-semibold transition text-left"
                   >
                     <div>
-                      <div className="font-bold">1. Manager (Zeebee)</div>
-                      <div className="text-[10px] text-amber-700 font-normal">Xem doanh thu toàn hệ thống (30%), duyệt Admin</div>
+                      <div className="font-bold">1. Manager (Zang)</div>
+                      <div className="text-[10px] text-amber-700 font-normal">Toàn quyền doanh thu 30%, duyệt nhân sự</div>
                     </div>
-                    <span className="text-[10px] bg-amber-200 px-2 py-0.5 rounded font-mono font-bold">manager</span>
+                    <span className="text-[10px] bg-amber-200 px-2 py-0.5 rounded font-mono font-bold">Zang</span>
+                  </button>
+
+                  <button
+                    onClick={() => quickLogin("Duy", "12344321")}
+                    className="w-full flex items-center justify-between p-2.5 bg-orange-50 hover:bg-orange-100/80 border border-orange-200 text-orange-900 rounded-xl text-xs font-semibold transition text-left"
+                  >
+                    <div>
+                      <div className="font-bold">2. Owner (Duy)</div>
+                      <div className="text-[10px] text-orange-700 font-normal">Chủ cơ sở quản lý dịch vụ, đơn hàng & 70% doanh thu</div>
+                    </div>
+                    <span className="text-[10px] bg-orange-200 px-2 py-0.5 rounded font-mono font-bold">Duy</span>
                   </button>
 
                   <button
@@ -405,21 +416,10 @@ export default function LoginPage() {
                     className="w-full flex items-center justify-between p-2.5 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 text-blue-900 rounded-xl text-xs font-semibold transition text-left"
                   >
                     <div>
-                      <div className="font-bold">2. Admin (Kỹ Thuật)</div>
-                      <div className="text-[10px] text-blue-700 font-normal">Cấu hình theme, banner, tham số leo thang</div>
+                      <div className="font-bold">3. Admin (Kỹ Thuật)</div>
+                      <div className="text-[10px] text-blue-700 font-normal">Cấu hình theme, banner, logo</div>
                     </div>
                     <span className="text-[10px] bg-blue-200 px-2 py-0.5 rounded font-mono font-bold">admin</span>
-                  </button>
-
-                  <button
-                    onClick={() => quickLogin("owner", "owner123")}
-                    className="w-full flex items-center justify-between p-2.5 bg-orange-50 hover:bg-orange-100/80 border border-orange-200 text-orange-900 rounded-xl text-xs font-semibold transition text-left"
-                  >
-                    <div>
-                      <div className="font-bold">3. Owner (Chủ Cơ Sở)</div>
-                      <div className="text-[10px] text-orange-700 font-normal">Quản lý CRM, dịch vụ, đơn hàng & 70% doanh thu</div>
-                    </div>
-                    <span className="text-[10px] bg-orange-200 px-2 py-0.5 rounded font-mono font-bold">owner</span>
                   </button>
 
                   <button

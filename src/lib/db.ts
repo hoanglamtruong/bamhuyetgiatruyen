@@ -190,10 +190,10 @@ export async function initDatabase() {
     if (parseInt(userCount[0].count, 10) === 0 && isDemoSeed) {
       await client.query(`
         INSERT INTO users (id, username, password, name, role, is_approved, telegram_chat_id) VALUES
-          ('u-manager', 'manager', 'manager123', 'Trưởng Ban Quản Lý (Zeebee)', 'MANAGER', true, 'telegram-manager-id'),
+          ('u-manager-zang', 'Zang', 'a090412033', 'Zang (Trưởng Ban Quản Lý)', 'MANAGER', true, 'telegram-manager-id'),
+          ('u-owner-duy', 'Duy', '12344321', 'Duy (Chủ Cơ Sở)', 'OWNER', true, 'telegram-owner-chat-123'),
           ('u-admin', 'admin', 'admin123', 'Kỹ Thuật Viên Admin', 'ADMIN', true, 'telegram-admin-id'),
-          ('u-admin-pending', 'admin_new', 'admin123', 'Admin Đang Chờ Duyệt', 'ADMIN', false, NULL),
-          ('u-owner', 'owner', 'owner123', 'Chủ Cơ Sở Bấm Huyệt', 'OWNER', true, 'telegram-owner-chat-123');
+          ('u-admin-pending', 'admin_new', 'admin123', 'Admin Đang Chờ Duyệt', 'ADMIN', false, NULL);
       `);
     }
 

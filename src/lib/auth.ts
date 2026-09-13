@@ -48,7 +48,7 @@ export async function loginUser(
 ): Promise<{ success: boolean; error?: string; user?: UserSession }> {
   const trimmed = identifier.trim();
   const res = await pool.query(
-    "SELECT id, username, password, name, role, is_approved, phone, email, customer_id FROM users WHERE username = $1 OR phone = $1;",
+    "SELECT id, username, password, name, role, is_approved, phone, email, customer_id FROM users WHERE LOWER(username) = LOWER($1) OR phone = $1;",
     [trimmed]
   );
   if (res.rows.length === 0) {
