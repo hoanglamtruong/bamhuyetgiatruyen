@@ -1,38 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  --teal-dark: #134E5E;
-  --teal: #1B6B7B;
-  --teal-light: #2A8C9E;
-  --orange: #E8622A;
-  --orange-hover: #D04F18;
-  --cream: #F8F5EE;
+  /* Natura Forest Green extracted from reference */
+  --primary: #2D482D;
+  --primary-dark: #213521;
+  --primary-deep: #162417;
+  --primary-light: #446944;
+  --primary-soft: #EDF3EC;
+  
+  /* Herbal Amber / Warm Gold */
+  --accent: #B68D40;
+  --accent-hover: #9E7533;
+  --accent-soft: #F9F4EB;
+
+  /* Cream / Linen backgrounds */
+  --cream: #FAF8F4;
   --cream-card: #FFFFFF;
-  --cream-border: #E8E2D2;
-  --text-primary: #1C2826;
-  --text-secondary: #5A6B68;
+  --cream-border: #EAE5DC;
+
+  /* Typography */
+  --text-primary: #1C271D;
+  --text-heading: #203321;
+  --text-secondary: #515F50;
+  --text-muted: #788677;
+
+  /* Backward-compatible variables mapped to new theme */
+  --teal-dark: #213521;
+  --teal: #2D482D;
+  --teal-light: #446944;
+  --orange: #B68D40;
+  --orange-hover: #9E7533;
 }
 
 body {
   background-color: var(--cream);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   margin: 0;
   padding: 0;
 }
 
+.font-serif-heading {
+  font-family: 'Lora', 'Playfair Display', Georgia, serif;
+}
+
+.font-brand-title {
+  font-family: 'Cinzel', 'Lora', Georgia, serif;
+}
+
 .brand-teal {
-  color: var(--teal);
+  color: var(--primary);
 }
 
 .bg-brand-teal {
-  background-color: var(--teal);
+  background-color: var(--primary);
 }
 
 .brand-orange {
-  color: var(--orange);
+  color: var(--accent);
 }
 
 .bg-brand-orange {
-  background-color: var(--orange);
+  background-color: var(--accent);
 }

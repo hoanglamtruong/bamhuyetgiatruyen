@@ -11,9 +11,9 @@ export async function GET() {
 
     const theme: Record<string, string> = {
       theme_title: "Bấm Huyệt Gia Truyền",
-      theme_slogan: "Khơi Thông Kinh Lạc · Đẩy Lùi Đau Nhức Cổ Vai Gáy",
-      theme_primary_color: "#1B6B7B",
-      theme_accent_color: "#E8622A",
+      theme_slogan: "Khơi Thông Kinh Lạc · Trị Liệu Thân Tâm Chuyên Sâu",
+      theme_primary_color: "#2D482D",
+      theme_accent_color: "#B68D40",
       theme_hotline: "0912.345.678",
       theme_address: "Số 18 Phố Trị Liệu Cổ Truyền, Quận Hoàn Kiếm, Hà Nội",
       theme_logo_url: "",
