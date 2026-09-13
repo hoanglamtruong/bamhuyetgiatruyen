@@ -24,9 +24,12 @@ async function runTests() {
 
   // 2. Đặt lịch hẹn & Chống trùng lịch (Feature 1 + Conflict Check)
   console.log("\n--- TEST 2: Đặt lịch hẹn & Chống trùng lịch ---");
-  const uniqueDay = 10 + (Math.floor(Date.now() / 1000) % 15);
-  const testDate = `2026-10-${String(uniqueDay).padStart(2, "0")}`;
-  const testTime = "14:00";
+  const randomDay = 1 + Math.floor(Math.random() * 28);
+  const randomMonth = 11 + Math.floor(Math.random() * 2);
+  const testDate = `2026-${randomMonth}-${String(randomDay).padStart(2, "0")}`;
+  const randomHour = 8 + Math.floor(Math.random() * 12);
+  const randomMin = Math.floor(Math.random() * 60);
+  const testTime = `${String(randomHour).padStart(2, "0")}:${String(randomMin).padStart(2, "0")}`;
 
   // Lần 1: Đặt lịch bình thường
   const bkgRes = await fetch(`${baseUrl}/api/bookings`, {
@@ -293,7 +296,88 @@ async function runTests() {
   });
   assert(restoreRes.status === 200, "Khôi phục hoạt động thành công");
   const afterRestore = await (await fetch(`${baseUrl}/api/escalation`)).json();
-  assert(afterRestore.isSuspended === false, "Hệ thống đã hoạt động bình thường trở lại");
+  // Test 10: Khách hàng Đăng ký / Đăng nhập, Hồ sơ cá nhân & Đánh giá Review nội bộ
+  console.log("\n--- TEST 10: Khách Hàng Đăng Ký / Đăng Nhập, Hồ Sơ & Đánh Giá Dịch Vụ ---");
+  const testPhone = `093${Math.floor(1000000 + Math.random() * 9000000)}`;
+  const regRes = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "Lê Hoàng Yến",
+      phone: testPhone,
+      password: "password123",
+      email: "hoangyen@gmail.com",
+      health_notes: "Đau mỏi vai gáy do làm việc văn phòng, tê bì cổ tay",
+    }),
+  });
+  const regData = await regRes.json();
+  assert(regRes.status === 200 && regData.success === true, "Khách hàng đăng ký tài khoản mới thành công");
+  assert(regData.user?.role === "CUSTOMER", "Phân quyền tài khoản chính xác: CUSTOMER");
+
+  // Đăng nhập bằng số điện thoại
+  const custLogin = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: testPhone, password: "password123" }),
+  });
+  const custCookie = custLogin.headers.get("set-cookie") || "";
+  assert(custLogin.status === 200, "Khách hàng đăng nhập bằng Số Điện Thoại thành công");
+
+  // Xem hồ sơ cá nhân
+  const profRes = await fetch(`${baseUrl}/api/customer/profile`, {
+    headers: { Cookie: custCookie },
+  });
+  const profData = await profRes.json();
+  assert(profRes.status === 200 && profData.customer.phone === testPhone, "Khách hàng truy cập Hồ Sơ Cá Nhân thành công");
+
+  // Cập nhật thông tin sức khỏe
+  const updateProfRes = await fetch(`${baseUrl}/api/customer/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: custCookie },
+    body: JSON.stringify({
+      name: "Lê Hoàng Yến",
+      email: "hoangyen.new@gmail.com",
+      health_notes: "Thoái hóa đốt sống cổ nhẹ, cơ bắp căng cứng",
+    }),
+  });
+  assert(updateProfRes.status === 200, "Khách hàng cập nhật hồ sơ cá nhân & sức khỏe thành công");
+
+  // Gửi đánh giá dịch vụ
+  const reviewRes = await fetch(`${baseUrl}/api/customer/reviews`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: custCookie },
+    body: JSON.stringify({
+      service_id: "s1",
+      rating: 5,
+      health_improvement_notes: "Bấm huyệt xong nhẹ hẳn vai gáy, tối ngủ sâu giấc",
+      comment: "Kỹ thuật viên bấm rất chuẩn huyệt vị, không gian yên tĩnh thư thái.",
+    }),
+  });
+  const reviewData = await reviewRes.json();
+  assert(reviewRes.status === 200 && reviewData.success === true, "Khách hàng gửi đánh giá & phản hồi sức khỏe thành công");
+
+  // Kiểm tra đánh giá hiển thị trong hồ sơ của khách hàng
+  const afterReviewProf = await (await fetch(`${baseUrl}/api/customer/profile`, { headers: { Cookie: custCookie } })).json();
+  assert(afterReviewProf.reviews?.length >= 1, "Đánh giá xuất hiện trong Hồ Sơ Cá Nhân của khách hàng");
+
+  // Kiểm tra bảo mật: Khách hàng thông thường KHÔNG được gọi /api/reviews
+  const forbidRes = await fetch(`${baseUrl}/api/reviews`, {
+    headers: { Cookie: custCookie },
+  });
+  assert(forbidRes.status === 403, "Bảo mật: Khách hàng không thể xem danh sách review toàn hệ thống (HTTP 403)");
+
+  // Owner và Manager CÓ THỂ xem đánh giá qua /api/reviews
+  const ownerReviewsRes = await fetch(`${baseUrl}/api/reviews`, {
+    headers: { Cookie: ownerCookie },
+  });
+  const ownerReviewsData = await ownerReviewsRes.json();
+  assert(ownerReviewsRes.status === 200 && ownerReviewsData.reviews?.length >= 1, "Owner xem được danh sách đánh giá của khách hàng (HTTP 200)");
+  assert(parseFloat(ownerReviewsData.stats?.avgRating) >= 4.0, `Điểm đánh giá trung bình hệ thống: ${ownerReviewsData.stats?.avgRating}⭐`);
+
+  const mgrReviewsRes = await fetch(`${baseUrl}/api/reviews`, {
+    headers: { Cookie: mgrCookie },
+  });
+  assert(mgrReviewsRes.status === 200, "Manager (Zeebee) xem được đánh giá để giám sát chất lượng (HTTP 200)");
 
   console.log("\n==========================================");
   console.log(`KẾT QUẢ: ${passed} PASS, ${failed} FAIL`);

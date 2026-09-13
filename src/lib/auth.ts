@@ -5,7 +5,10 @@ export interface UserSession {
   id: string;
   username: string;
   name: string;
-  role: "MANAGER" | "ADMIN" | "OWNER";
+  role: "MANAGER" | "ADMIN" | "OWNER" | "CUSTOMER";
+  phone?: string;
+  email?: string;
+  customerId?: string;
   isApproved: boolean;
 }
 
@@ -17,7 +20,10 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   try {
     const data = JSON.parse(Buffer.from(sessionCookie.value, "base64").toString("utf-8"));
     // Verify user in db
-    const res = await pool.query("SELECT id, username, name, role, is_approved FROM users WHERE id = $1;", [data.id]);
+    const res = await pool.query(
+      "SELECT id, username, name, role, is_approved, phone, email, customer_id FROM users WHERE id = $1;",
+      [data.id]
+    );
     if (res.rows.length === 0) return null;
     const u = res.rows[0];
     return {
@@ -25,6 +31,9 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       username: u.username,
       name: u.name,
       role: u.role,
+      phone: u.phone,
+      email: u.email,
+      customerId: u.customer_id,
       isApproved: u.is_approved,
     };
   } catch {
@@ -32,10 +41,14 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   }
 }
 
-export async function loginUser(username: string, pass: string): Promise<{ success: boolean; error?: string; user?: UserSession }> {
-  const res = await pool.query("SELECT id, username, password, name, role, is_approved FROM users WHERE username = $1;", [username]);
+export async function loginUser(identifier: string, pass: string): Promise<{ success: boolean; error?: string; user?: UserSession }> {
+  const trimmed = identifier.trim();
+  const res = await pool.query(
+    "SELECT id, username, password, name, role, is_approved, phone, email, customer_id FROM users WHERE username = $1 OR phone = $1;",
+    [trimmed]
+  );
   if (res.rows.length === 0) {
-    return { success: false, error: "Tên đăng nhập không tồn tại" };
+    return { success: false, error: "Tài khoản hoặc số điện thoại không tồn tại" };
   }
   const u = res.rows[0];
   if (u.password !== pass) {
@@ -50,6 +63,9 @@ export async function loginUser(username: string, pass: string): Promise<{ succe
     username: u.username,
     name: u.name,
     role: u.role,
+    phone: u.phone,
+    email: u.email,
+    customerId: u.customer_id,
     isApproved: u.is_approved,
   };
 

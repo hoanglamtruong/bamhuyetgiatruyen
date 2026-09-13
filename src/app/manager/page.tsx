@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Users, DollarSign, ShieldAlert, CheckCircle, XCircle, TrendingUp, Info } from "lucide-react";
+import { BarChart3, Users, DollarSign, ShieldAlert, CheckCircle, XCircle, TrendingUp, Info, Star } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -19,6 +19,8 @@ export default function ManagerDashboard() {
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -30,13 +32,23 @@ export default function ManagerDashboard() {
         return;
       }
 
-      const revRes = await fetch("/api/manager/revenue");
+      const [revRes, admRes, reviewsRes] = await Promise.all([
+        fetch("/api/manager/revenue"),
+        fetch("/api/manager/admins"),
+        fetch("/api/reviews"),
+      ]);
+
       const revData = await revRes.json();
       setRevenueData(revData);
 
-      const admRes = await fetch("/api/manager/admins");
       const admData = await admRes.json();
       if (admData.admins) setAdmins(admData.admins);
+
+      if (reviewsRes.ok) {
+        const rData = await reviewsRes.json();
+        setReviews(rData.reviews || []);
+        setReviewStats(rData.stats || null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -267,6 +279,81 @@ export default function ManagerDashboard() {
             </tbody>
           </table>
         </div>
+      </div>
+      {/* 3. Giám sát chất lượng & Đánh giá dịch vụ toàn hệ thống */}
+      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <span>Giám Sát Chất Lượng & Đánh Giá Dịch Vụ ({reviews.length})</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Phản hồi thực tế từ khách hàng giúp Zeebee Manager theo dõi chất lượng tay nghề và độ hài lòng trị liệu.
+            </p>
+          </div>
+          <div className="flex items-center space-x-3 bg-amber-50/70 border border-amber-200 p-2.5 px-4 rounded-2xl">
+            <div>
+              <div className="text-[10px] text-gray-500">Điểm Đánh Giá TB</div>
+              <div className="text-lg font-black text-amber-600 flex items-center gap-1">
+                <span>{reviewStats?.avgRating || "5.0"}</span>
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500 inline" />
+              </div>
+            </div>
+            <div className="border-l border-amber-200 pl-3">
+              <div className="text-[10px] text-gray-500">Tổng Lượt</div>
+              <div className="text-lg font-black text-gray-900">{reviews.length}</div>
+            </div>
+          </div>
+        </div>
+
+        {reviews.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-xs">
+            Chưa có đánh giá nào từ khách hàng trên hệ thống.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {reviews.map((r: any) => (
+              <div key={r.id} className="py-4 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-gray-900 text-sm">{r.customer_name}</span>
+                    <span className="text-xs font-mono text-gray-500">({r.customer_phone})</span>
+                    <span className="text-xs bg-teal-50 text-teal-800 border border-teal-100 px-2 py-0.5 rounded-full font-medium">
+                      {r.service_title}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${s <= r.rating ? "text-amber-500 fill-amber-500" : "text-gray-200"}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-amber-700">{r.rating}/5</span>
+                    <span className="text-xs text-gray-400">• {new Date(r.created_at).toLocaleDateString("vi-VN")}</span>
+                  </div>
+                </div>
+
+                {r.health_improvement_notes && (
+                  <div className="p-2.5 bg-emerald-50/70 border border-emerald-100 rounded-xl text-xs text-emerald-900">
+                    <span className="font-bold text-emerald-800 mr-1">🩺 Tiến triển bệnh lý:</span>
+                    <span className="italic">{r.health_improvement_notes}</span>
+                  </div>
+                )}
+
+                {r.comment && (
+                  <div className="text-xs text-gray-700 pl-1">
+                    <span className="font-semibold text-gray-900">Nhận xét: </span>
+                    {r.comment}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

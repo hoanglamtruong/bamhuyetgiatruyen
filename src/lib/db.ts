@@ -160,6 +160,27 @@ export async function initDatabase() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS booking_id VARCHAR(50);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(18, 2) DEFAULT 0;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS original_amount NUMERIC(18, 2);
+
+      -- Bổ sung thông tin khách hàng vào bảng users
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id VARCHAR(50);
+
+      -- 10. Bảng Đánh Giá Dịch Vụ (Reviews & Feedback - bảo mật nội bộ)
+      CREATE TABLE IF NOT EXISTS reviews (
+        id VARCHAR(50) PRIMARY KEY,
+        customer_id VARCHAR(50) REFERENCES customers(id) ON DELETE CASCADE,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(50),
+        order_id VARCHAR(50) REFERENCES orders(id) ON DELETE SET NULL,
+        service_id VARCHAR(50) REFERENCES services(id) ON DELETE SET NULL,
+        service_title VARCHAR(255),
+        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT,
+        health_improvement_notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     const isDemoSeed = process.env.SEED_DEMO_DATA === "true";
@@ -260,6 +281,18 @@ export async function initDatabase() {
           ('ban-1', 'Ưu Đãi Trị Liệu Cổ Vai Gáy Giảm 20%', 'Dành cho khách hàng đặt lịch hẹn trực tuyến trong tuần này', '', '/booking?service=s1', true, 1),
           ('ban-2', 'Gói Dưỡng Sinh Toàn Thân & Ngâm Chân Thảo Dược', 'Tặng kèm bấm huyệt diện chẩn an thần giải tỏa căng thẳng', '', '/booking?service=s3', true, 2);
       `);
+    }
+
+    // Seed Demo Reviews nếu là môi trường demo và reviews đang trống
+    if (isDemoSeed) {
+      const { rows: revCount } = await client.query(`SELECT COUNT(*) FROM reviews;`);
+      if (parseInt(revCount[0].count, 10) === 0) {
+        await client.query(`
+          INSERT INTO reviews (id, customer_id, customer_name, customer_phone, order_id, service_id, service_title, rating, comment, health_improvement_notes) VALUES
+            ('rev-1', 'c1', 'Nguyễn Thị Thu Hà', '0912345678', 'ord-001', 's1', 'Bấm Huyệt Trị Liệu Cổ Vai Gáy', 5, 'Kỹ thuật viên bấm rất đúng huyệt, lực tay êm ái vừa phải. Không gian yên tĩnh thư thái.', 'Cổ vai gáy nhẹ nhõm hơn hẳn, tối về ngủ rất sâu giấc, bớt hẳn triệu chứng đau nhức nửa đầu.'),
+            ('rev-2', 'c2', 'Trần Đình Quang', '0987654321', 'ord-002', 's2', 'Đả Thông Kinh Lạc Cột Sống Thắt Lưng', 5, 'Liệu trình đả thông kinh lạc chuyên sâu rất hiệu quả với người ngồi máy tính nhiều.', 'Vùng thắt lưng giảm căng cứng cơ rõ rệt, không còn bị buốt hông khi ngồi lâu.');
+        `);
+      }
     }
 
   } finally {

@@ -19,17 +19,20 @@ import {
   FileText,
   Tag,
   Share2,
+  Star,
 } from "lucide-react";
 
 export default function OwnerDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"bookings" | "orders" | "crm" | "services" | "revenue">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "orders" | "crm" | "services" | "revenue" | "reviews">("bookings");
   const [services, setServices] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersSummary, setOrdersSummary] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState<any>(null);
   const [escalation, setEscalation] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -68,12 +71,13 @@ export default function OwnerDashboard() {
         return;
       }
 
-      const [escRes, srvRes, bkgRes, cusRes, ordRes] = await Promise.all([
+      const [escRes, srvRes, bkgRes, cusRes, ordRes, revRes] = await Promise.all([
         fetch("/api/escalation"),
         fetch("/api/services"),
         fetch("/api/bookings"),
         fetch("/api/customers"),
         fetch("/api/orders"),
+        fetch("/api/reviews"),
       ]);
 
       setEscalation(await escRes.json());
@@ -92,6 +96,12 @@ export default function OwnerDashboard() {
       const ordData = await ordRes.json();
       setOrders(ordData.orders || []);
       setOrdersSummary(ordData.summary || null);
+
+      if (revRes.ok) {
+        const revData = await revRes.json();
+        setReviews(revData.reviews || []);
+        setReviewStats(revData.stats || null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -395,6 +405,16 @@ Rất hân hạnh được đón tiếp Quý khách!`;
         >
           <DollarSign className="w-4 h-4" />
           <span>Báo Cáo Đối Soát 30/70</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("reviews")}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+            activeTab === "reviews" ? "border-[#E8622A] text-[#E8622A]" : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Star className="w-4 h-4 text-amber-500" />
+          <span>⭐ Đánh Giá Dịch Vụ ({reviews.length})</span>
         </button>
       </div>
 
@@ -725,6 +745,86 @@ Rất hân hạnh được đón tiếp Quý khách!`;
               </ul>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB 6: QUẢN LÝ ĐÁNH GIÁ & CẢM NHẬN KHÁCH HÀNG */}
+      {activeTab === "reviews" && (
+        <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span>Quản Lý Đánh Giá & Cảm Nhận Phục Hồi Của Khách Hàng ({reviews.length})</span>
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Phản hồi được gửi trực tiếp từ hồ sơ cá nhân của khách hàng sau khi trải nghiệm trị liệu.
+              </p>
+            </div>
+            <div className="flex items-center space-x-4 bg-amber-50/60 border border-amber-200/80 p-3 rounded-2xl">
+              <div className="text-right">
+                <div className="text-[11px] text-gray-500">Điểm trung bình</div>
+                <div className="text-lg font-black text-amber-600 flex items-center justify-end gap-1">
+                  <span>{reviewStats?.avgRating || "5.0"}</span>
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500 inline" />
+                </div>
+              </div>
+              <div className="text-right border-l pl-3 border-amber-200">
+                <div className="text-[11px] text-gray-500">Lượt đánh giá</div>
+                <div className="text-lg font-black text-gray-900">{reviews.length}</div>
+              </div>
+            </div>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 text-xs">
+              Chưa có khách hàng nào gửi đánh giá. Đánh giá sẽ xuất hiện tại đây khi khách hàng viết nhận xét trong trang hồ sơ cá nhân.
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {reviews.map((r: any) => (
+                <div key={r.id} className="py-5 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-gray-900 text-sm">{r.customer_name}</span>
+                      <span className="text-xs font-mono text-gray-500">({r.customer_phone})</span>
+                      <span className="text-xs text-teal-800 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full font-medium">
+                        {r.service_title}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-3.5 h-3.5 ${s <= r.rating ? "text-amber-500 fill-amber-500" : "text-gray-200"}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-amber-700">{r.rating}/5 sao</span>
+                      <span className="text-xs text-gray-400">
+                        • {new Date(r.created_at).toLocaleDateString("vi-VN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {r.health_improvement_notes && (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-xl text-xs text-emerald-900">
+                      <span className="font-bold text-emerald-800 mr-1">🩺 Cải thiện sức khỏe:</span>
+                      <span className="italic">{r.health_improvement_notes}</span>
+                    </div>
+                  )}
+
+                  {r.comment && (
+                    <div className="text-xs text-gray-700 pl-1">
+                      <span className="font-semibold text-gray-900">Nhận xét: </span>
+                      {r.comment}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -59,6 +59,16 @@ function BookingForm() {
       })
       .catch(() => {});
 
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((d) => {
+        if (d.user) {
+          if (d.user.name) setCustomerName(d.user.name);
+          if (d.user.phone) setCustomerPhone(d.user.phone);
+        }
+      })
+      .catch(() => {});
+
     // Default booking date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);

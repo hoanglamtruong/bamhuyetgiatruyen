@@ -7,7 +7,7 @@ import { Sparkles, Calendar, BookOpen, PhoneCall, User, LogOut, ShieldAlert, Bar
 interface UserInfo {
   username: string;
   name: string;
-  role: "MANAGER" | "ADMIN" | "OWNER";
+  role: "MANAGER" | "ADMIN" | "OWNER" | "CUSTOMER";
 }
 
 export default function Navbar() {
@@ -83,6 +83,17 @@ export default function Navbar() {
               Tư Vấn & Liên Hệ
             </Link>
 
+            {/* Customer Profile Link */}
+            {user?.role === "CUSTOMER" && (
+              <Link
+                href="/profile"
+                className="flex items-center space-x-1.5 bg-[#E8622A] hover:bg-[#D04F18] text-white font-semibold text-xs px-3 py-1.5 rounded-md shadow transition"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Hồ Sơ Của Tôi</span>
+              </Link>
+            )}
+
             {/* Role-based Dashboard Links */}
             {user?.role === "MANAGER" && (
               <Link
@@ -119,10 +130,15 @@ export default function Navbar() {
           <div className="flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-2">
-                <div className="text-right hidden sm:block">
+                <Link
+                  href={user.role === "CUSTOMER" ? "/profile" : user.role === "MANAGER" ? "/manager" : user.role === "ADMIN" ? "/admin" : "/owner"}
+                  className="text-right hidden sm:block hover:opacity-85 transition"
+                >
                   <div className="text-xs font-semibold text-white">{user.name}</div>
-                  <div className="text-[10px] text-teal-200 uppercase font-bold">{user.role}</div>
-                </div>
+                  <div className="text-[10px] text-teal-200 uppercase font-bold">
+                    {user.role === "CUSTOMER" ? "Khách Hàng" : user.role}
+                  </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="p-1.5 text-teal-200 hover:text-white hover:bg-[#134E5E] rounded-md transition"
@@ -134,9 +150,10 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="bg-[#E8622A] hover:bg-[#D04F18] text-white text-xs font-semibold px-3.5 py-1.5 rounded-md shadow transition"
+                className="bg-[#E8622A] hover:bg-[#D04F18] text-white text-xs font-semibold px-3.5 py-1.5 rounded-md shadow transition flex items-center space-x-1.5"
               >
-                Đăng Nhập Quản Trị
+                <User className="w-3.5 h-3.5" />
+                <span>Đăng Ký / Đăng Nhập</span>
               </Link>
             )}
           </div>
