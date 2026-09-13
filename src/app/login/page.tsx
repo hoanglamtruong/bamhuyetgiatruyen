@@ -14,37 +14,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Register form state (for Customers)
+  // Register form state (STRICTLY for Customers)
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regHealthNotes, setRegHealthNotes] = useState("");
 
-  // Initial setup state when users table is empty (Fresh Production)
-  const [hasUsers, setHasUsers] = useState<boolean | null>(null);
   const [isDemo, setIsDemo] = useState(false);
-  const [setupMode, setSetupMode] = useState(false);
-  const [setupName, setSetupName] = useState("");
-  const [setupUsername, setSetupUsername] = useState("");
-  const [setupPassword, setSetupPassword] = useState("");
-  const [setupRole, setSetupRole] = useState<"MANAGER" | "OWNER" | "ADMIN">("MANAGER");
-  const [setupSuccess, setSetupSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/status")
       .then((res) => res.json())
       .then((data) => {
-        setHasUsers(data.hasUsers);
         const hostIsDemo = typeof window !== "undefined" && window.location.hostname.includes("bhgt");
         setIsDemo(data.isDemo || hostIsDemo);
-        if (data.hasUsers === false) {
-          setSetupMode(true);
-        }
       })
-      .catch(() => {
-        setHasUsers(true);
-      });
+      .catch(() => {});
   }, []);
 
   const handleLogin = async (u = username, p = password) => {
@@ -109,35 +95,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleInitialSetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: setupName,
-          username: setupUsername,
-          password: setupPassword,
-          role: setupRole,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Khởi tạo tài khoản thất bại");
-      }
-      setSetupSuccess(data.message || "Khởi tạo thành công! Đang tự động đăng nhập...");
-      setTimeout(() => {
-        handleLogin(setupUsername, setupPassword);
-      }, 1000);
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
   const quickLogin = (u: string, p: string) => {
     setUsername(u);
     setPassword(p);
@@ -155,138 +112,48 @@ export default function LoginPage() {
           </div>
         )}
 
-        {setupMode ? (
-          <div>
-            <div className="text-center mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-[#1B6B7B] text-white flex items-center justify-center mx-auto mb-3 shadow">
-                <UserPlus className="w-6 h-6" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">Khởi Tạo Quản Trị Viên</h1>
-              <p className="text-xs text-gray-500 mt-1">
-                Hệ thống chưa có tài khoản. Vui lòng thiết lập tài khoản quản trị đầu tiên để bắt đầu vận hành.
-              </p>
-            </div>
-
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start space-x-3 text-red-800 text-xs">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold">Lỗi:</div>
-                  <div>{error}</div>
-                </div>
-              </div>
-            )}
-
-            {setupSuccess && (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start space-x-3 text-emerald-800 text-xs">
-                <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <div>{setupSuccess}</div>
-              </div>
-            )}
-
-            <form onSubmit={handleInitialSetup} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Họ và Tên</label>
-                <input
-                  type="text"
-                  value={setupName}
-                  onChange={(e) => setSetupName(e.target.value)}
-                  placeholder="VD: Trưởng Ban Quản Lý"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Tên Đăng Nhập</label>
-                <input
-                  type="text"
-                  value={setupUsername}
-                  onChange={(e) => setSetupUsername(e.target.value)}
-                  placeholder="VD: manager hoặc owner"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Mật Khẩu</label>
-                <input
-                  type="password"
-                  value={setupPassword}
-                  onChange={(e) => setSetupPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Vai Trò Ban Đầu</label>
-                <select
-                  value={setupRole}
-                  onChange={(e: any) => setSetupRole(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                >
-                  <option value="MANAGER">Manager (Toàn quyền doanh thu 30% & duyệt nhân sự)</option>
-                  <option value="OWNER">Owner (Chủ cơ sở vận hành & doanh thu 70%)</option>
-                  <option value="ADMIN">Admin (Kỹ thuật viên & cấu hình theme)</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1B6B7B] hover:bg-[#134E5E] text-white font-bold text-sm py-3 rounded-xl shadow transition flex items-center justify-center space-x-2 disabled:opacity-50"
-              >
-                <span>{loading ? "Đang khởi tạo..." : "Kích Hoạt Tài Khoản Quản Trị"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
+        <div>
+          {/* Tab Switcher: Đăng Nhập (toàn bộ user) vs Đăng Ký (chỉ Customer) */}
+          <div className="flex bg-gray-100 p-1 rounded-2xl mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setTab("login");
+                setError(null);
+              }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                tab === "login" ? "bg-white text-[#1B6B7B] shadow-sm" : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              Cổng Đăng Nhập
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab("register");
+                setError(null);
+              }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                tab === "register" ? "bg-white text-[#E8622A] shadow-sm" : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              Đăng Ký Khách Hàng
+            </button>
           </div>
-        ) : (
-          <div>
-            {/* Tab Switcher: Đăng Nhập vs Đăng Ký */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl mb-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("login");
-                  setError(null);
-                }}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
-                  tab === "login" ? "bg-white text-[#1B6B7B] shadow-sm" : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                Đăng Nhập
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("register");
-                  setError(null);
-                }}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
-                  tab === "register" ? "bg-white text-[#E8622A] shadow-sm" : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                Đăng Ký Khách Hàng
-              </button>
-            </div>
 
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-[#1B6B7B] text-white flex items-center justify-center mx-auto mb-3 shadow">
-                {tab === "login" ? <Lock className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {tab === "login" ? "Đăng Nhập Hệ Thống" : "Đăng Ký Hồ Sơ Khách Hàng"}
-              </h1>
-              <p className="text-xs text-gray-500 mt-1">
-                {tab === "login"
-                  ? "Dành cho tất cả: Khách Hàng · Chủ Cơ Sở · Quản Lý · Kỹ Thuật"
-                  : "Tạo tài khoản để theo dõi lịch trình, đơn hàng & đánh giá dịch vụ"}
-              </p>
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-[#1B6B7B] text-white flex items-center justify-center mx-auto mb-3 shadow">
+              {tab === "login" ? <Lock className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
             </div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {tab === "login" ? "Đăng Nhập Hệ Thống" : "Đăng Ký Tài Khoản Khách Hàng"}
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              {tab === "login"
+                ? "Cổng đăng nhập chung: Khách Hàng · Chủ Cơ Sở (Owner) · Quản Lý (Manager) · Kỹ Thuật (Admin)"
+                : "Cổng đăng ký dành riêng cho Khách Hàng để theo dõi lịch trình, đơn hàng & sức khỏe"}
+            </p>
+          </div>
 
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start space-x-3 text-red-800 text-xs">
@@ -516,9 +383,15 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
+
+            {/* Ghi chú cổng vận hành cấp riêng */}
+            <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+              <p className="text-[11px] text-gray-400">
+                🔒 Nhân sự vận hành (Owner · Admin · Manager): Tài khoản được tạo và cấp riêng bởi Quản Lý Hệ Thống.
+              </p>
+            </div>
           </div>
-        )}
+        </div>
       </div>
-    </div>
   );
 }

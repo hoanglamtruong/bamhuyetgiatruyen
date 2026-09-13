@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Users, DollarSign, ShieldAlert, CheckCircle, XCircle, TrendingUp, Info, Star } from "lucide-react";
+import { BarChart3, Users, DollarSign, ShieldAlert, CheckCircle, XCircle, TrendingUp, Info, Star, X, UserPlus, ShieldCheck } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -22,6 +22,18 @@ export default function ManagerDashboard() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Modal cấp tài khoản vận hành riêng
+  const [staffModal, setStaffModal] = useState(false);
+  const [staffForm, setStaffForm] = useState({
+    name: "",
+    username: "",
+    password: "",
+    role: "ADMIN",
+    phone: "",
+  });
+  const [staffSubmitting, setStaffSubmitting] = useState(false);
+  const [staffError, setStaffError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -75,6 +87,35 @@ export default function ManagerDashboard() {
       }
     } catch (err: any) {
       alert("Lỗi: " + err.message);
+    }
+  };
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffSubmitting(true);
+    setStaffError(null);
+    try {
+      const res = await fetch("/api/manager/admins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create_staff",
+          ...staffForm,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Không thể cấp tài khoản nhân sự");
+      }
+      setMsg(data.message);
+      setStaffModal(false);
+      setStaffForm({ name: "", username: "", password: "", role: "ADMIN", phone: "" });
+      fetchData();
+      setTimeout(() => setMsg(null), 4000);
+    } catch (err: any) {
+      setStaffError(err.message);
+    } finally {
+      setStaffSubmitting(false);
     }
   };
 
@@ -214,18 +255,26 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Phê duyệt nhân sự Admin */}
+      {/* Quản lý & Cấp tài khoản nhân sự vận hành */}
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 sm:p-8">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
-            <Users className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Quản Lý & Cấp Riêng Tài Khoản Vận Hành</h2>
+              <p className="text-xs text-gray-500">
+                Tài khoản nhân sự vận hành (Admin, Owner, Manager) được tạo và cấp riêng bởi Manager.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Phê Duyệt Nhân Sự Admin Kỹ Thuật</h2>
-            <p className="text-xs text-gray-500">
-              Chỉ những tài khoản Admin được Manager cấp duyệt mới có quyền đăng nhập cấu hình hệ thống.
-            </p>
-          </div>
+          <button
+            onClick={() => setStaffModal(true)}
+            className="inline-flex items-center space-x-2 bg-[#1B6B7B] hover:bg-[#134E5E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition"
+          >
+            <span>➕ Cấp Tài Khoản Vận Hành Mới</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -355,6 +404,129 @@ export default function ManagerDashboard() {
           </div>
         )}
       </div>
+
+      {/* Modal Cấp Tài Khoản Nhân Sự Vận Hành Riêng */}
+      {staffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-gray-100 relative">
+            <button
+              onClick={() => {
+                setStaffModal(false);
+                setStaffError(null);
+              }}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-3 bg-teal-50 text-[#1B6B7B] rounded-2xl">
+                <UserPlus className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900">Cấp Tài Khoản Vận Hành Mới</h3>
+                <p className="text-xs text-gray-500">Cấp riêng cho Admin, Owner hoặc Manager nội bộ</p>
+              </div>
+            </div>
+
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-[11px] text-amber-900">
+              ℹ️ <strong>Cơ chế bảo mật:</strong> Cổng đăng ký công khai chỉ dành cho Khách Hàng. Mọi tài khoản nhân sự vận hành được phân quyền và cấp phát riêng tại đây.
+            </div>
+
+            {staffError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>{staffError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateStaff} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Họ Và Tên Nhân Sự *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Lương y Nguyễn Văn A"
+                  value={staffForm.name}
+                  onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tên Đăng Nhập *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="vd: owner2, admin_tech"
+                    value={staffForm.username}
+                    onChange={(e) => setStaffForm({ ...staffForm, username: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Mật Khẩu Ban Đầu *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mật khẩu tối thiểu"
+                    value={staffForm.password}
+                    onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Vai Trò Phân Quyền *</label>
+                  <select
+                    value={staffForm.role}
+                    onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-bold text-[#1B6B7B] focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  >
+                    <option value="ADMIN">ADMIN (Kỹ Thuật Viên - Cấu Hình Theme)</option>
+                    <option value="OWNER">OWNER (Chủ Cơ Sở - Quản Lý Dịch Vụ & Khách)</option>
+                    <option value="MANAGER">MANAGER (Quản Lý Doanh Thu Zeebee 30%)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Số Điện Thoại Liên Hệ</label>
+                  <input
+                    type="tel"
+                    placeholder="09..."
+                    value={staffForm.phone}
+                    onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaffModal(false);
+                    setStaffError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  disabled={staffSubmitting}
+                  className="inline-flex items-center space-x-2 bg-[#1B6B7B] hover:bg-[#134E5E] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{staffSubmitting ? "Đang xử lý..." : "Cấp Tài Khoản Ngay"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

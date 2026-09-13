@@ -379,6 +379,67 @@ async function runTests() {
   });
   assert(mgrReviewsRes.status === 200, "Manager (Zeebee) xem được đánh giá để giám sát chất lượng (HTTP 200)");
 
+  // --- TEST 11: Cấp Riêng Tài Khoản Nhân Sự Vận Hành Bởi Manager & Bảo Mật ---
+  console.log("\n--- TEST 11: Cấp Riêng Tài Khoản Nhân Sự Vận Hành Bởi Manager ---");
+  const testStaffUser = `staff_${Date.now().toString(36)}`;
+  const createStaffRes = await fetch(`${baseUrl}/api/manager/admins`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: mgrCookie,
+    },
+    body: JSON.stringify({
+      action: "create_staff",
+      name: "Kỹ Thuật Viên Mới",
+      username: testStaffUser,
+      password: "staffPassword123",
+      role: "ADMIN",
+      phone: "0988776655",
+    }),
+  });
+  const createStaffData = await createStaffRes.json();
+  assert(createStaffRes.status === 200 && createStaffData.success === true, "Manager cấp riêng tài khoản nhân sự vận hành thành công (HTTP 200)");
+
+  // Kiểm tra tài khoản nhân sự vừa tạo đăng nhập được
+  const staffLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: testStaffUser, password: "staffPassword123" }),
+  });
+  const staffLoginData = await staffLoginRes.json();
+  assert(staffLoginRes.status === 200 && staffLoginData.user?.role === "ADMIN", "Nhân sự vận hành mới đăng nhập thành công với vai trò ADMIN");
+
+  // Kiểm tra bảo mật: Customer không thể tự cấp tài khoản vận hành
+  const forbidCreateStaff = await fetch(`${baseUrl}/api/manager/admins`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: custCookie,
+    },
+    body: JSON.stringify({
+      action: "create_staff",
+      name: "Hacker",
+      username: "hacker_admin",
+      password: "123",
+      role: "ADMIN",
+    }),
+  });
+  assert(forbidCreateStaff.status === 403, "Bảo mật: Customer bị chặn khi cố gắng cấp tài khoản nhân sự (HTTP 403)");
+
+  // Kiểm tra cổng đăng ký công khai chỉ tạo role CUSTOMER
+  const regCustomerOnly = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "Khách Thử Nghiệm",
+      phone: `09${Math.floor(10000000 + Math.random() * 90000000)}`,
+      password: "pass123456",
+      role: "MANAGER", // cố tình truyền MANAGER
+    }),
+  });
+  const regCustData = await regCustomerOnly.json();
+  assert(regCustData.user?.role === "CUSTOMER", "Cổng đăng ký công khai bắt buộc role là CUSTOMER dù có giả mạo role khác");
+
   console.log("\n==========================================");
   console.log(`KẾT QUẢ: ${passed} PASS, ${failed} FAIL`);
   console.log("==========================================");
